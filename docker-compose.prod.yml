@@ -1,0 +1,19 @@
+services:
+  app:
+    container_name: lotek-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports: !override []
+    volumes:
+      - lotek-db:/app/db
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - DB_PATH=/app/db/lotek.db
+    networks: [lotek, web]
+volumes:
+  lotek-db:
+networks:
+  web:
+    external: true

@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3005:80"
+    volumes:
+      - ./db:/app/db
+    environment:
+      - NODE_ENV=production
+      - PORT=80
+      - DB_PATH=/app/db/lotek.db
+    networks: [lotek]
+networks:
+  lotek:
