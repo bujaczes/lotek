@@ -11,7 +11,8 @@
     "build": "vite build",
     "start": "node server.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "import:history": "node scripts/import-history.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.1",
