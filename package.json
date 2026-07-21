@@ -1,0 +1,29 @@
+{
+  "name": "lotek",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently \"vite\" \"node --watch server.js\"",
+    "build": "vite build",
+    "start": "node server.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "supertest": "^7.2.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "shell-quote": "^1.10.0"
+  }
+}
