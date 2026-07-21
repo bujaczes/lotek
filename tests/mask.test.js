@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import Database from 'better-sqlite3';
+import { openDatabase } from '../db/index.js';
 import { maskFromNumbers, numbersFromMask, popcount } from '../src/server/lib/mask.js';
 
 describe('maskFromNumbers / numbersFromMask', () => {
@@ -39,9 +39,8 @@ describe('popcount', () => {
 });
 
 describe('bit_count SQL function', () => {
-  it('registers as a deterministic SQL function computing popcount of a bitwise AND', () => {
-    const db = new Database(':memory:');
-    db.function('bit_count', { deterministic: true }, popcount);
+  it('is registered by openDatabase() and computes popcount of a bitwise AND', () => {
+    const db = openDatabase(':memory:');
     const a = maskFromNumbers([1, 2, 3, 4, 5, 6]);
     const b = maskFromNumbers([4, 5, 6, 7, 8, 9]);
     const { result } = db.prepare('SELECT bit_count(? & ?) AS result').get(a, b);
