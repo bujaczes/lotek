@@ -1,0 +1,30 @@
+:root {
+  --color-bg: #fcfcfa;
+  --color-ink: #191a2e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: system-ui, sans-serif;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.placeholder h1 {
+  font-size: 3rem;
+  margin: 0;
+}

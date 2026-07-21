@@ -1,0 +1,9 @@
+node_modules
+dist
+db/*.db*
+.git
+.idea
+.superpowers
+.env
+.env.local
+.DS_Store
