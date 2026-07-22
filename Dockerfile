@@ -19,9 +19,9 @@ COPY server.js ./server.js
 COPY src/server ./src/server
 COPY db/schema.sql ./db/schema.sql
 COPY db/index.js ./db/index.js
-# COPY scripts ./scripts
+COPY scripts ./scripts
 # COPY config ./config
-# COPY data/fixtures ./data/fixtures
+COPY data/fixtures ./data/fixtures
 COPY --from=build /app/dist ./dist
 ENV NODE_ENV=production
 ENV PORT=80
