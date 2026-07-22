@@ -18,6 +18,13 @@
   --heat-1: #ffc400;
   --heat-2: #e4372e;
 
+  /* chart series — NOT new colors: --chart-empirical is --ball-edge (the dark step
+     of the Lotto amber; the bright #ffc400 is 1.6:1 on white and illegal as a fill),
+     --chart-theoretical is the cool pole already defined in src/blanket-scale.js.
+     Kept in sync with src/charts/theme.js, which is where the rationale lives. */
+  --chart-empirical: #d99a00;
+  --chart-theoretical: #3e6c8e;
+
   /* derived ink tints */
   --ink-70: rgba(25, 26, 46, 0.7);
   --ink-55: rgba(25, 26, 46, 0.55);
@@ -991,7 +998,467 @@ button {
   border-bottom-color: var(--color-ink);
 }
 
+/* ============================================================================
+   STATYSTYKI — seven sections, one grammar
+   ========================================================================== */
+.view--stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  padding-block: var(--sp-5) var(--sp-6);
+}
+.stats-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 46rem;
+}
+.stats-head__title {
+  font-size: var(--step-4);
+}
+.stats-head__lead {
+  font-size: var(--step-1);
+  color: var(--ink-70);
+}
+.stats-slot {
+  display: block;
+}
+.stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.stats-section__head {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  align-items: baseline;
+  gap: 0.35rem 0;
+}
+.stats-section__idx {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--ink-40);
+}
+.stats-section__title {
+  font-size: var(--step-3);
+}
+.stats-section__lead {
+  grid-column: 2;
+  color: var(--ink-70);
+  max-width: 64ch;
+}
+
+.panel {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.panel__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+.panel__hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.chart-box {
+  width: 100%;
+  min-width: 0;
+}
+.chart-note {
+  font-size: var(--step--1);
+  color: var(--ink-55);
+  max-width: 72ch;
+}
+.chart-note b {
+  color: var(--color-ink);
+}
+.chart-note--marker {
+  border-left: 2px solid var(--color-ink);
+  padding-left: 0.7rem;
+  color: var(--ink-70);
+}
+.link-inline {
+  border-bottom: 1px solid var(--ink-40);
+}
+.link-inline:hover {
+  border-bottom-color: var(--color-ink);
+}
+
+/* table view — the relief channel for the sub-3:1 amber fill, and the keyboard path */
+.chart-table__summary {
+  font-size: var(--step--1);
+  color: var(--ink-55);
+  cursor: pointer;
+}
+.chart-table__summary:hover {
+  color: var(--color-ink);
+}
+.chart-table__scroll {
+  overflow-x: auto;
+  max-height: 22rem;
+  overflow-y: auto;
+  margin-top: var(--sp-2);
+}
+.chart-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+.chart-table__caption {
+  text-align: left;
+  padding-bottom: 0.4rem;
+  color: var(--ink-40);
+  font-family: var(--font-text);
+}
+.chart-table__table th,
+.chart-table__table td {
+  padding: 0.28rem 0.5rem;
+  border-bottom: 1px solid var(--color-line);
+  text-align: right;
+  white-space: nowrap;
+}
+.chart-table__table th:first-child,
+.chart-table__table td:first-child {
+  text-align: left;
+}
+.chart-table__table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  color: var(--ink-55);
+  font-weight: 500;
+}
+
+.carpet__caption {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.structure__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+.structure__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.structure__panel {
+  min-width: 0;
+}
+
+/* ---- pary i trójki ----------------------------------------------------- */
+.miniball--sm {
+  width: 1.7rem;
+  height: 1.7rem;
+  font-size: 0.7rem;
+}
+.miniball--marked {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+}
+.lift-col {
+  min-width: 0;
+}
+.lift-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.lift-row {
+  display: grid;
+  grid-template-columns: 1.3rem auto 1fr auto;
+  grid-template-areas:
+    'pos balls cnt lift'
+    'bar bar bar bar';
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.35rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+.lift-row:hover {
+  background: var(--surface-sunk);
+}
+.lift-row__pos {
+  grid-area: pos;
+  font-size: 0.78rem;
+  color: var(--ink-40);
+  text-align: right;
+}
+.lift-row__balls {
+  grid-area: balls;
+  display: flex;
+  gap: 0.2rem;
+}
+.lift-row__cnt {
+  grid-area: cnt;
+  font-size: var(--step--1);
+  color: var(--ink-55);
+  text-align: right;
+  white-space: nowrap;
+}
+.lift-row__cnt b {
+  color: var(--color-ink);
+}
+.lift-row__lift {
+  grid-area: lift;
+  font-size: var(--step--1);
+  font-weight: 500;
+  text-align: right;
+  min-width: 3.4rem;
+}
+.lift-bar {
+  grid-area: bar;
+  position: relative;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+.lift-bar__axis {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--ink-40);
+}
+.lift-bar__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--ratio) * 50%);
+  border-radius: 999px;
+}
+/* Diverging around lift 1.0, on the page's own two poles: amber = empiria above the
+   expectation, cool = below it. (Not --color-hot: that stays reserved for the blankiet
+   heatmap extremes, and 30 red bars would read as "hot picks" — the opposite of the
+   honest framing this section argues for.) */
+.lift-bar__fill--above {
+  left: 50%;
+  background: var(--chart-empirical);
+}
+.lift-bar__fill--below {
+  right: 50%;
+  background: var(--chart-theoretical);
+}
+.lift-legend {
+  font-size: 0.7rem;
+  color: var(--ink-40);
+}
+
+/* ---- stat tiles (sąsiadujące / powtórki) ------------------------------- */
+.stat-tile {
+  gap: var(--sp-2);
+}
+.stat-tile__label {
+  font-size: var(--step--1);
+  color: var(--ink-70);
+}
+.stat-tile__value {
+  /* hero-scale number: text sans, proportional figures (never tabular at this size) */
+  font-family: var(--font-text);
+  font-weight: 700;
+  font-size: clamp(2.3rem, 1.5rem + 3vw, 3.1rem);
+  line-height: 1;
+  font-variant-numeric: proportional-nums;
+}
+.stat-tile__delta {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-55);
+}
+.meter {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--heat-0);
+  margin-block: 0.4rem;
+}
+.meter__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: var(--chart-empirical);
+}
+.meter__tick {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--chart-theoretical);
+}
+.meter__legend {
+  display: flex;
+  gap: 1.1rem;
+  font-size: 0.72rem;
+  color: var(--ink-55);
+}
+.meter__key::before {
+  content: '';
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+}
+.meter__key--empirical::before {
+  background: var(--chart-empirical);
+}
+.meter__key--theoretical::before {
+  background: var(--chart-theoretical);
+}
+.stat-tile__basis {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.stat-tile__myth {
+  font-size: var(--step--1);
+  color: var(--ink-70);
+}
+
+/* ---- powtórzone szóstki ------------------------------------------------ */
+.dup__verdict {
+  align-self: flex-start;
+}
+.dup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dup-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.dup-group__balls {
+  display: flex;
+  gap: 0.2rem;
+}
+.dup-group__when {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-55);
+}
+.dup-math {
+  margin: 0;
+}
+.dup-math__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-line);
+  font-size: var(--step--1);
+}
+.dup-math__row:last-child {
+  border-bottom: 0;
+}
+.dup-math__row dt {
+  color: var(--ink-55);
+}
+.dup-math__row dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ---- rekordy ----------------------------------------------------------- */
+.records__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+.record-card {
+  gap: 0.45rem;
+}
+.record-card__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.record-card__value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--font-text);
+  font-weight: 700;
+  font-size: clamp(2rem, 1.4rem + 2.4vw, 2.6rem);
+  line-height: 1;
+  font-variant-numeric: proportional-nums;
+}
+.record-card__unit {
+  font-size: var(--step--1);
+  font-weight: 400;
+  color: var(--ink-55);
+}
+.record-card__meta {
+  font-size: var(--step--1);
+  color: var(--ink-55);
+}
+.record-card__draw {
+  border-bottom: 1px solid var(--ink-40);
+}
+.record-card__draw:hover {
+  border-bottom-color: var(--color-ink);
+}
+.record-card__tie {
+  color: var(--ink-40);
+}
+.record-card__balls {
+  display: flex;
+  gap: 0.22rem;
+  flex-wrap: wrap;
+}
+.record-card__foot {
+  margin-top: auto;
+  padding-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--ink-55);
+}
+
 /* ---- responsive -------------------------------------------------------- */
+@media (min-width: 40rem) {
+  .records__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 46rem) {
+  .structure__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .lift-row {
+    grid-template-columns: 1.3rem auto max-content minmax(3rem, 1fr) auto;
+    grid-template-areas: 'pos balls cnt bar lift';
+  }
+}
+@media (min-width: 62rem) {
+  .records__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 33.99rem) {
   .blanket-section__head,
   .rankings-section__head {
@@ -1052,7 +1519,8 @@ button {
   .blanket__field:focus-visible {
     transform: none;
   }
-  .rank-row {
+  .rank-row,
+  .lift-row {
     transition: none;
   }
   * {

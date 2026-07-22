@@ -17,6 +17,32 @@ export function formatInt(n) {
   return intFormatter.format(n).replace(/\s/g, NBSP);
 }
 
+// Percentages and decimals are formatted per call site precision, so the formatters
+// are memoized by digit count instead of being module constants.
+const fixedFormatters = new Map();
+function fixedFormatter(digits, options) {
+  const key = `${options.style || 'decimal'}:${digits}`;
+  let formatter = fixedFormatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('pl-PL', {
+      ...options,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+    fixedFormatters.set(key, formatter);
+  }
+  return formatter;
+}
+
+/** 0..1 share -> "49,52%". */
+export function formatPercent(share, digits = 2) {
+  return fixedFormatter(digits, { style: 'percent' }).format(share);
+}
+
+export function formatDecimal(value, digits = 2) {
+  return fixedFormatter(digits, {}).format(value);
+}
+
 // Build the Date from the ISO parts in LOCAL time so a `YYYY-MM-DD` string is
 // never dragged back a day by a UTC-negative host timezone.
 function localDateFromIso(iso) {

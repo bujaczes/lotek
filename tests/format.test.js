@@ -1,5 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { formatInt, formatLongDate, formatShortDate, pluralPl, drawsAgo } from '../src/format.js';
+import {
+  formatInt,
+  formatLongDate,
+  formatShortDate,
+  formatPercent,
+  formatDecimal,
+  pluralPl,
+  drawsAgo,
+} from '../src/format.js';
+
+describe('formatPercent', () => {
+  it('formats a 0..1 share as a Polish percentage with two decimals by default', () => {
+    expect(formatPercent(0.4951984494075151)).toBe('49,52%');
+    expect(formatPercent(0.5640350244883086)).toBe('56,40%');
+  });
+  it('honours a requested precision', () => {
+    expect(formatPercent(0.4951984494075151, 1)).toBe('49,5%');
+    expect(formatPercent(0.5, 0)).toBe('50%');
+  });
+});
+
+describe('formatDecimal', () => {
+  it('formats with a Polish comma and the requested precision', () => {
+    expect(formatDecimal(1.9471444704363958, 2)).toBe('1,95');
+    expect(formatDecimal(149.8123, 1)).toBe('149,8');
+  });
+});
 
 describe('formatInt', () => {
   it('groups thousands with a non-breaking space (pl-PL)', () => {
