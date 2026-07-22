@@ -78,6 +78,56 @@ describe('createBlanket', () => {
     expect(node.querySelector('.blanket').classList.contains('is-mode-zscore')).toBe(true);
   });
 
+  it('keeps the tooltip inside the stage for every column (measure-and-correct)', () => {
+    const node = createBlanket(ENTRIES);
+    document.body.append(node);
+    const stage = node.querySelector('.blanket__stage');
+    const tip = node.querySelector('.blanket-tip');
+    const svg = node.querySelector('.blanket');
+
+    // jsdom has no layout. Mock a 300px stage (0..300) and a 140px tooltip whose
+    // rect TRACKS the applied `left` (translate(-50%) centers on it) so the
+    // component's measure-and-correct pass is genuinely exercised.
+    const STAGE = { left: 0, right: 300, width: 300, top: 100, bottom: 400, height: 300 };
+    stage.getBoundingClientRect = () => STAGE;
+    const TIPW = 140;
+    tip.getBoundingClientRect = () => {
+      const center = parseFloat(tip.style.left) || 0; // stage-relative center
+      return { left: center - TIPW / 2, right: center + TIPW / 2, width: TIPW, top: 0, bottom: 60, height: 60 };
+    };
+
+    const hover = (n, rect) => {
+      const field = node.querySelector(`.blanket__field[data-number="${n}"]`);
+      field.getBoundingClientRect = () => rect;
+      field.dispatchEvent(new Event('pointerover', { bubbles: true }));
+      return tip.getBoundingClientRect();
+    };
+    const within = (tr) => tr.left >= STAGE.left && tr.right <= STAGE.right;
+    const caretPx = () => parseFloat(tip.style.getPropertyValue('--caret-x'));
+
+    // column-0 ball at the left edge: raw center 25 would push the box to -45.
+    let tr = hover(1, { left: 10, top: 120, width: 30, height: 30 });
+    expect(tip.hidden).toBe(false);
+    expect(within(tr)).toBe(true); // slid fully inside
+    expect(caretPx()).toBeGreaterThanOrEqual(12); // caret stays on the box, toward the ball
+    expect(caretPx()).toBeLessThan(TIPW / 2);
+
+    // column-6 ball at the right edge: raw center 285 would overflow the right.
+    tr = hover(7, { left: 270, top: 120, width: 30, height: 30 });
+    expect(within(tr)).toBe(true);
+    expect(caretPx()).toBeGreaterThan(TIPW / 2); // caret leans right, toward the ball
+
+    // a middle ball is untouched: center passes through, caret centered.
+    tr = hover(4, { left: 135, top: 120, width: 30, height: 30 });
+    expect(within(tr)).toBe(true);
+    expect(tip.style.left).toBe('150px');
+    expect(tip.style.getPropertyValue('--caret-x')).toBe('50%');
+
+    svg.dispatchEvent(new Event('focusout', { bubbles: true }));
+    expect(tip.hidden).toBe(true);
+    node.remove();
+  });
+
   it('activates a field with Enter via a bubbling click (router-compatible)', () => {
     const node = createBlanket(ENTRIES);
     document.body.append(node);

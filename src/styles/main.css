@@ -648,13 +648,18 @@ button {
   gap: 0.1rem;
   text-align: left;
 }
+/* Author `.blanket-tip { display: flex }` outranks the UA `[hidden]` rule, so hide
+   explicitly — otherwise the empty tooltip box stays painted at the stage origin. */
+.blanket-tip[hidden] {
+  display: none;
+}
 .blanket-tip.is-below {
   transform: translate(-50%, 14px);
 }
 .blanket-tip::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--caret-x, 50%); /* points at the ball even when the box is edge-clamped */
   bottom: -5px;
   width: 10px;
   height: 10px;

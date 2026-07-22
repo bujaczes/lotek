@@ -71,16 +71,39 @@ function buildTooltip(stage) {
         el('span', { class: 'blanket-tip__row' }, ['Ostatnio ', el('b', { class: 'mono' }, formatShortDate(entry.lastDrawnAt))]),
         el('span', { class: 'blanket-tip__row blanket-tip__gap' }, drawsAgo(entry.currentGap)),
       );
-      tip.hidden = false;
-      // Position centered above the ball, clamped to the stage. getBoundingClientRect
-      // is zero in jsdom — harmless, this only matters in a real browser.
+      tip.hidden = false; // must be display:flex before we can measure it
       const s0 = stage.getBoundingClientRect();
       const f0 = field.getBoundingClientRect();
-      const cx = f0.left - s0.left + f0.width / 2;
+      const ballCx = f0.left - s0.left + f0.width / 2; // ball center within the stage
       const top = f0.top - s0.top;
-      tip.style.left = `${cx}px`;
+
+      // 1) Place the box centered over the ball, caret centered.
+      tip.style.left = `${ballCx}px`;
       tip.style.top = `${top}px`;
+      tip.style.setProperty('--caret-x', '50%');
       tip.classList.toggle('is-below', top < 76);
+
+      // 2) Measure the *rendered* box and slide it back inside the stage so the ~14
+      // first/last-column balls never overflow (worst on a narrow viewport). Working
+      // from the real rect sidesteps padding/border-box and text-wrap subtleties that
+      // a hand-computed clamp gets wrong. The caret is then offset to keep pointing at
+      // the ball. jsdom has no layout (all rects 0), so real numbers come from the
+      // component test's mocked rects, not from here.
+      const tr = tip.getBoundingClientRect();
+      const MARGIN = 6;
+      let dx = 0;
+      if (tr.width >= s0.width - 2 * MARGIN) {
+        dx = s0.left + s0.width / 2 - (tr.left + tr.width / 2); // wider than stage -> center
+      } else if (tr.left < s0.left + MARGIN) {
+        dx = s0.left + MARGIN - tr.left;
+      } else if (tr.right > s0.right - MARGIN) {
+        dx = s0.right - MARGIN - tr.right;
+      }
+      if (dx !== 0) {
+        tip.style.left = `${ballCx + dx}px`;
+        const caretX = Math.min(Math.max(tr.width / 2 - dx, 12), Math.max(tr.width - 12, 12));
+        tip.style.setProperty('--caret-x', `${caretX}px`);
+      }
     },
     hide() {
       tip.hidden = true;
