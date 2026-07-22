@@ -1,3 +1,5 @@
+import { invalidateCache } from './cache.js';
+
 // TODO(Faza 5): move HALF_LIFE_DRAWS into config/typer.json once the config loader
 // exists; for now it is a plain module constant, per Task 5 brief.
 export const HALF_LIFE_DRAWS = 300;
@@ -138,7 +140,7 @@ export function computePairStats(draws) {
   return rows;
 }
 
-function readDraws(db, gameType) {
+export function readDraws(db, gameType) {
   return db
     .prepare(
       `SELECT draw_number AS drawNumber, drawn_at AS drawnAt, n1, n2, n3, n4, n5, n6
@@ -193,6 +195,12 @@ export function rebuildStats(db, { gameType = 'lotto' } = {}) {
   });
 
   rebuild();
+
+  // Cache is only invalidated once the transaction above has actually committed — every
+  // draw/number_stat/pair_stat-derived API response (src/server/draws.js, stats.js)
+  // routes through `cached()`, so this is the single choke point that keeps them from
+  // serving stale data after an import or a manual `npm run stats:rebuild`.
+  invalidateCache();
 
   return {
     gameType,
