@@ -1,9 +1,12 @@
-// TODO(Faza 4): move drawWeekdays/drawHour into config/schedule.json (one source of
-// truth shared with the fetch-latest scheduler) — for now these are plain module
-// constants, per the Task 6 brief.
-const TIME_ZONE = 'Europe/Warsaw';
-const DRAW_WEEKDAYS = [2, 4, 6]; // JS Date#getUTCDay() convention: 0=Sun..6=Sat -> Tue/Thu/Sat
-const DRAW_HOUR = 22;
+import { loadSchedule } from './config.js';
+
+// Single source of truth: config/schedule.json (Task 13 refactor — this module used to
+// hard-code these as plain constants per the Task 6 brief; the scheduler (Task 13) reads
+// the same file, so drawDays/drawHour only ever need to change in one place).
+const SCHEDULE = loadSchedule();
+const TIME_ZONE = SCHEDULE.timeZone;
+const DRAW_WEEKDAYS = SCHEDULE.drawDays; // JS Date#getUTCDay() convention: 0=Sun..6=Sat -> Tue/Thu/Sat
+const DRAW_HOUR = SCHEDULE.drawHour;
 const MAX_DAYS_TO_SCAN = 8; // any starting weekday is at most 7 days from its next match
 
 const PARTS_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -81,4 +84,44 @@ export function nextDrawDate(after) {
   // Unreachable: DRAW_WEEKDAYS has 3 entries spread across a 7-day week, so a match is
   // always found within one extra day of scanning past the boundary.
   throw new Error('nextDrawDate: no draw day found within the scan window');
+}
+
+/**
+ * Most recent draw slot (Tue/Thu/Sat, `DRAW_HOUR`:00 Europe/Warsaw) at or before
+ * `beforeOrAt` — the backward mirror of `nextDrawDate`, used by the scheduler's
+ * watchdog (Task 13) to find "the last draw that was supposed to have happened by now".
+ * Inclusive of the exact instant (unlike `nextDrawDate`'s strict "after"): a watchdog
+ * tick that happens to land exactly on a draw slot should treat that slot as already due,
+ * not skip back a further two days.
+ */
+export function previousDrawDate(beforeOrAt) {
+  const start = partsOf(beforeOrAt);
+  let y = start.year;
+  let m = start.month;
+  let d = start.day;
+
+  for (let i = 0; i < MAX_DAYS_TO_SCAN; i++) {
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    if (DRAW_WEEKDAYS.includes(weekday)) {
+      const candidate = zonedTimeToUtc(y, m, d, DRAW_HOUR, 0, 0);
+      if (candidate.getTime() <= beforeOrAt.getTime()) return candidate;
+    }
+    const prevDay = new Date(Date.UTC(y, m - 1, d - 1));
+    y = prevDay.getUTCFullYear();
+    m = prevDay.getUTCMonth() + 1;
+    d = prevDay.getUTCDate();
+  }
+
+  // Unreachable, same reasoning as nextDrawDate's own throw above.
+  throw new Error('previousDrawDate: no draw day found within the scan window');
+}
+
+/**
+ * `date`'s calendar date in Europe/Warsaw as `YYYY-MM-DD` — matches the TEXT format
+ * `draw.drawn_at` is stored in (see CONVENTIONS.md), so watchdog can look up "is there a
+ * draw row for the expected slot's date" with a plain string comparison.
+ */
+export function warsawDateIso(date) {
+  const p = partsOf(date);
+  return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }

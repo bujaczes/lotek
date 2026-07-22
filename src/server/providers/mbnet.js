@@ -3,7 +3,9 @@ import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 
 export const SOURCE = 'mbnet';
 
-const DEFAULT_URL = 'http://www.mbnet.com.pl/dl.txt';
+// Exported so scheduler.js's reconcile() can reuse the exact same URL when it downloads
+// the full dl.txt for its weekly full-history diff, instead of duplicating the literal.
+export const DEFAULT_URL = 'http://www.mbnet.com.pl/dl.txt';
 
 /**
  * Fetches every Lotto draw newer than `sinceDrawNumber` from mbnet's dl.txt, ascending.
