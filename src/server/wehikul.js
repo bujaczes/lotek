@@ -58,6 +58,9 @@ export function wehikulHandler(db) {
       hits,
       occurrences,
       balance: { drawsPlayed, cost, winnings, net: winnings - cost },
+      // The stakes travel with the result: the page has to state what the balance
+      // assumed, and config/prizes.json is the only source of truth for that.
+      prizes: { 3: prizes['3'], 4: prizes['4'], 5: prizes['5'], 6: prizes['6'], betPrice: prizes.betPrice },
       disclaimer: DISCLAIMER,
     });
   };

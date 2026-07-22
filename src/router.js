@@ -5,6 +5,9 @@ export const routes = [
   { name: 'home', pattern: '/' },
   { name: 'stats', pattern: '/statystyki' },
   { name: 'number', pattern: '/liczba/:n' },
+  // Both shapes hit the same view: /losowanie is the archive alone, /losowanie/:nr
+  // is the archive plus that draw's detail.
+  { name: 'draw', pattern: '/losowanie' },
   { name: 'draw', pattern: '/losowanie/:nr' },
   { name: 'typer', pattern: '/typer' },
   { name: 'wehikul', pattern: '/wehikul' },

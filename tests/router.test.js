@@ -25,6 +25,11 @@ describe('matchRoute', () => {
     expect(matchRoute('/losowanie/7380')).toEqual({ name: 'draw', params: { nr: '7380' } });
   });
 
+  it('matches the bare archive route (no draw number)', () => {
+    expect(matchRoute('/losowanie')).toEqual({ name: 'draw', params: {} });
+    expect(matchRoute('/losowanie/')).toEqual({ name: 'draw', params: {} });
+  });
+
   it('strips query string and hash before matching', () => {
     expect(matchRoute('/liczba/12?foo=bar#top')).toEqual({ name: 'number', params: { n: '12' } });
   });

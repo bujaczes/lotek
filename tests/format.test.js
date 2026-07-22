@@ -7,7 +7,42 @@ import {
   formatDecimal,
   pluralPl,
   drawsAgo,
+  formatPln,
+  formatSignedPln,
 } from '../src/format.js';
+
+const NBSP = ' ';
+
+describe('formatPln', () => {
+  it('formats zloty amounts the Polish way, with a non-breaking group separator', () => {
+    expect(formatPln(22140)).toBe(`22${NBSP}140,00${NBSP}zł`);
+    expect(formatPln(3)).toBe(`3,00${NBSP}zł`);
+  });
+
+  it('uses a real minus sign, never a hyphen', () => {
+    expect(formatPln(-17804)).toBe(`−17${NBSP}804,00${NBSP}zł`);
+  });
+
+  it('keeps zero unsigned', () => {
+    expect(formatPln(0)).toBe(`0,00${NBSP}zł`);
+  });
+});
+
+describe('formatSignedPln', () => {
+  it('marks a positive balance explicitly', () => {
+    expect(formatSignedPln(12000)).toBe(`+12${NBSP}000,00${NBSP}zł`);
+    // pl-PL groups from five digits up (minimumGroupingDigits = 2), like formatInt.
+    expect(formatSignedPln(1200)).toBe(`+1200,00${NBSP}zł`);
+  });
+
+  it('leaves the minus sign on a negative balance', () => {
+    expect(formatSignedPln(-17804)).toBe(`−17${NBSP}804,00${NBSP}zł`);
+  });
+
+  it('does not sign zero', () => {
+    expect(formatSignedPln(0)).toBe(`0,00${NBSP}zł`);
+  });
+});
 
 describe('formatPercent', () => {
   it('formats a 0..1 share as a Polish percentage with two decimals by default', () => {

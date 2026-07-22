@@ -43,6 +43,27 @@ export function formatDecimal(value, digits = 2) {
   return fixedFormatter(digits, {}).format(value);
 }
 
+// Money. pl-PL currency output already reads "22 140,00 zł"; the separator is
+// normalized to U+00A0 for the same reason as formatInt, and the ASCII hyphen is
+// swapped for a real minus sign (U+2212) so a negative balance sets like the rest
+// of the tabular data.
+const plnFormatter = new Intl.NumberFormat('pl-PL', {
+  style: 'currency',
+  currency: 'PLN',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatPln(value) {
+  return plnFormatter.format(value).replace(/\s/g, NBSP).replace(/^-/, '−');
+}
+
+/** Same, with an explicit "+" on a gain — for the wehikuł balance, where sign is the point. */
+export function formatSignedPln(value) {
+  const text = formatPln(value);
+  return value > 0 ? `+${text}` : text;
+}
+
 // Build the Date from the ISO parts in LOCAL time so a `YYYY-MM-DD` string is
 // never dragged back a day by a UTC-negative host timezone.
 function localDateFromIso(iso) {
