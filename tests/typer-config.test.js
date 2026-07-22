@@ -19,13 +19,30 @@ describe('loadTyperConfig() — reads config/typer.json with validation', () => 
 });
 
 describe('validateTyperConfig() — fail loud on malformed config', () => {
+  const popularity = () => ({
+    base: 1.0,
+    birthdayBonus: 0.35,
+    dayMonthBonus: 0.25,
+    luckyMultipliers: { 7: 1.25, 13: 1.2, 3: 1.15, 9: 1.1, 11: 1.1, 17: 1.1 },
+    highDiscount: 0.85,
+    penalties: {
+      run3: 1.3,
+      runPerExtra: 1.15,
+      line4plus: 1.25,
+      allBirthday: 1.5,
+      lowSum: 1.2,
+      lowSumThreshold: 120,
+      historicalWinner: 2.0,
+      allHigh: 1.3,
+    },
+  });
   const base = () => ({
     modelVersion: '1.0.0',
     halfLifeDraws: 300,
     priorStrengthDraws: 780,
     chi2Alpha: 0.05,
     weights: { wA: 1.0, wB: 1.0 },
-    popularity: {},
+    popularity: popularity(),
   });
 
   it('accepts a well-formed config and returns it', () => {
@@ -67,6 +84,30 @@ describe('validateTyperConfig() — fail loud on malformed config', () => {
     const cfg = base();
     delete cfg.popularity;
     expect(() => validateTyperConfig(cfg)).toThrow(/popularity/);
+  });
+
+  it('throws when a popularity number field is missing', () => {
+    const cfg = base();
+    delete cfg.popularity.birthdayBonus;
+    expect(() => validateTyperConfig(cfg)).toThrow(/popularity\.birthdayBonus/);
+  });
+
+  it('throws when popularity.penalties is missing a key', () => {
+    const cfg = base();
+    delete cfg.popularity.penalties.lowSumThreshold;
+    expect(() => validateTyperConfig(cfg)).toThrow(/penalties\.lowSumThreshold/);
+  });
+
+  it('throws when a lucky multiplier key is out of range', () => {
+    const cfg = base();
+    cfg.popularity.luckyMultipliers[99] = 1.1;
+    expect(() => validateTyperConfig(cfg)).toThrow(/luckyMultipliers/);
+  });
+
+  it('throws when a lucky multiplier value is not positive', () => {
+    const cfg = base();
+    cfg.popularity.luckyMultipliers[7] = 0;
+    expect(() => validateTyperConfig(cfg)).toThrow(/luckyMultipliers\.7/);
   });
 
   it('loadTyperConfig throws a clear error for a malformed file path', () => {

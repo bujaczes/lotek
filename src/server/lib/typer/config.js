@@ -13,6 +13,56 @@ function requirePositiveNumber(cfg, key) {
   }
 }
 
+function requireFiniteNumber(obj, path, key) {
+  const v = obj[key];
+  if (typeof v !== 'number' || !Number.isFinite(v)) {
+    throw new Error(`config/typer.json: "${path}.${key}" must be a finite number (got ${v})`);
+  }
+}
+
+// Multipliers that model "how popular is this number/pattern" must be >= 1 for a
+// penalty (popular = bad = pushes score down) and >= 0 for a weight component. We only
+// enforce finiteness + sign here; the exact calibration values are the model's choice.
+const POPULARITY_NUMBER_KEYS = ['base', 'birthdayBonus', 'dayMonthBonus', 'highDiscount'];
+const PENALTY_KEYS = [
+  'run3',
+  'runPerExtra',
+  'line4plus',
+  'allBirthday',
+  'lowSum',
+  'lowSumThreshold',
+  'historicalWinner',
+  'allHigh',
+];
+
+function validatePopularity(popularity) {
+  if (popularity === null || typeof popularity !== 'object') {
+    throw new Error('config/typer.json: "popularity" must be an object');
+  }
+  for (const key of POPULARITY_NUMBER_KEYS) {
+    requireFiniteNumber(popularity, 'popularity', key);
+  }
+  if (popularity.luckyMultipliers === null || typeof popularity.luckyMultipliers !== 'object') {
+    throw new Error('config/typer.json: "popularity.luckyMultipliers" must be an object keyed by number');
+  }
+  for (const [numKey, mult] of Object.entries(popularity.luckyMultipliers)) {
+    const n = Number(numKey);
+    if (!Number.isInteger(n) || n < 1 || n > 49) {
+      throw new Error(`config/typer.json: "popularity.luckyMultipliers" key must be a number 1-49 (got "${numKey}")`);
+    }
+    if (typeof mult !== 'number' || !Number.isFinite(mult) || mult <= 0) {
+      throw new Error(`config/typer.json: "popularity.luckyMultipliers.${numKey}" must be a positive finite number (got ${mult})`);
+    }
+  }
+  const penalties = popularity.penalties;
+  if (penalties === null || typeof penalties !== 'object') {
+    throw new Error('config/typer.json: "popularity.penalties" must be an object');
+  }
+  for (const key of PENALTY_KEYS) {
+    requireFiniteNumber(penalties, 'popularity.penalties', key);
+  }
+}
+
 /**
  * Validates a parsed Typer config object, failing loud on anything the statistical core
  * relies on being present and sane. `popularity` is a Task-15 stub: it must exist and be
@@ -48,9 +98,7 @@ export function validateTyperConfig(cfg) {
     }
   }
 
-  if (cfg.popularity === null || typeof cfg.popularity !== 'object') {
-    throw new Error('config/typer.json: "popularity" must be an object (Task-15 stub, may be {})');
-  }
+  validatePopularity(cfg.popularity);
 
   return cfg;
 }

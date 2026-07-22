@@ -4,5 +4,21 @@
   "priorStrengthDraws": 780,
   "chi2Alpha": 0.05,
   "weights": { "wA": 1.0, "wB": 1.0 },
-  "popularity": {}
+  "popularity": {
+    "base": 1.0,
+    "birthdayBonus": 0.35,
+    "dayMonthBonus": 0.25,
+    "luckyMultipliers": { "7": 1.25, "13": 1.2, "3": 1.15, "9": 1.1, "11": 1.1, "17": 1.1 },
+    "highDiscount": 0.85,
+    "penalties": {
+      "run3": 1.3,
+      "runPerExtra": 1.15,
+      "line4plus": 1.25,
+      "allBirthday": 1.5,
+      "lowSum": 1.2,
+      "lowSumThreshold": 120,
+      "historicalWinner": 2.0,
+      "allHigh": 1.3
+    }
+  }
 }
