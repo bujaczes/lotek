@@ -1,4 +1,5 @@
 import { mapDrawResultsResponse } from './lotto-response.js';
+import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 
 export const SOURCE = 'lottopl';
 
@@ -25,7 +26,7 @@ export async function fetchSince(sinceDrawNumber, { fetchFn = fetch } = {}) {
 
   for (;;) {
     const url = `${BASE_URL}?game=Lotto&index=1&size=${size}&sort=drawDate&order=DESC`;
-    const res = await fetchFn(url, { headers: { Accept: 'application/json' } });
+    const res = await fetchWithTimeout(fetchFn, url, { headers: { Accept: 'application/json' } });
     if (!res.ok) {
       throw new Error(`${SOURCE}: HTTP ${res.status} fetching ${url}`);
     }

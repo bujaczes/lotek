@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSince, SOURCE } from '../src/server/providers/openapi.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from '../src/server/lib/fetch-timeout.js';
 
 function jsonResponse(body, { ok = true, status = 200 } = {}) {
   return { ok, status, json: async () => body };
@@ -113,5 +114,25 @@ describe('providers/openapi — official developers.lotto.pl OpenAPI', () => {
     await expect(fetchSince(7380, { fetchFn, now: NOW, sinceDrawnAt: '2026-07-18', apiKey: 'test-key' })).rejects.toThrow(
       /malformed response.*items/i
     );
+  });
+
+  describe('a hung request', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('a never-resolving fetchFn fails after the fetch timeout instead of hanging the run forever', async () => {
+      const fetchFn = vi.fn(() => new Promise(() => {}));
+
+      const promise = fetchSince(7380, { fetchFn, now: NOW, sinceDrawnAt: '2026-07-18', apiKey: 'test-key' });
+      const assertion = expect(promise).rejects.toThrow(/timed out after/);
+
+      await vi.advanceTimersByTimeAsync(DEFAULT_FETCH_TIMEOUT_MS);
+      await assertion;
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { parseDlFile } from '../lib/parse-dl.js';
+import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 
 export const SOURCE = 'mbnet';
 
@@ -13,7 +14,7 @@ const DEFAULT_URL = 'http://www.mbnet.com.pl/dl.txt';
  * tail, to honor the same fetchSince contract as the other two providers).
  */
 export async function fetchSince(sinceDrawNumber, { fetchFn = fetch, url = DEFAULT_URL } = {}) {
-  const res = await fetchFn(url);
+  const res = await fetchWithTimeout(fetchFn, url);
   if (!res.ok) {
     throw new Error(`${SOURCE}: HTTP ${res.status} fetching ${url}`);
   }

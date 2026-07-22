@@ -1,5 +1,6 @@
 import { nextDrawDate } from '../lib/schedule.js';
 import { mapDrawResultsResponse } from './lotto-response.js';
+import { fetchWithTimeout } from '../lib/fetch-timeout.js';
 
 export const SOURCE = 'openapi';
 
@@ -74,7 +75,7 @@ export async function fetchSince(
   for (const date of dates) {
     const isoDate = warsawDateStr(date);
     const url = `${BASE_URL}?gameType=Lotto&drawDate=${isoDate}&index=1&size=10&sort=drawDate&order=DESC`;
-    const res = await fetchFn(url, { headers: { [API_KEY_HEADER]: apiKey, Accept: 'application/json' } });
+    const res = await fetchWithTimeout(fetchFn, url, { headers: { [API_KEY_HEADER]: apiKey, Accept: 'application/json' } });
     if (res.status === 404) continue; // no result published yet for that date
     if (!res.ok) {
       throw new Error(`${SOURCE}: HTTP ${res.status} fetching ${url}`);

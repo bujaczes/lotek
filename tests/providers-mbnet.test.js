@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSince, SOURCE } from '../src/server/providers/mbnet.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from '../src/server/lib/fetch-timeout.js';
 
 const SAMPLE_TEXT = [
   '1. 27.01.1957 8,12,31,39,43,45',
@@ -53,5 +54,25 @@ describe('providers/mbnet — the dl.txt fallback (always the complete history i
     const fetchFn = vi.fn(async () => textResponse('<html><body>down for maintenance</body></html>'));
 
     await expect(fetchSince(0, { fetchFn })).rejects.toThrow(/no parseable draws/i);
+  });
+
+  describe('a hung request', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('a never-resolving fetchFn fails after the fetch timeout instead of hanging the run forever', async () => {
+      const fetchFn = vi.fn(() => new Promise(() => {}));
+
+      const promise = fetchSince(0, { fetchFn });
+      const assertion = expect(promise).rejects.toThrow(/timed out after/);
+
+      await vi.advanceTimersByTimeAsync(DEFAULT_FETCH_TIMEOUT_MS);
+      await assertion;
+    });
   });
 });

@@ -1,23 +1,9 @@
 import { fetchSince as chainFetchSince, defaultProviderChain } from '../providers/index.js';
 import { maskFromNumbers } from './mask.js';
 import { rebuildStats } from './rebuild-stats.js';
+import { prepareInsertDraw, writeImportLog } from './draw-writer.js';
 
 const GAME_TYPE = 'lotto';
-
-const insertSql = `
-  INSERT INTO draw (game_type, draw_number, drawn_at, n1, n2, n3, n4, n5, n6, mask, source, created_at)
-  VALUES (@gameType, @drawNumber, @drawnAt, @n1, @n2, @n3, @n4, @n5, @n6, @mask, @source, @createdAt)
-  ON CONFLICT(game_type, draw_number) DO NOTHING
-`;
-
-const logSql = `
-  INSERT INTO import_log (source, started_at, finished_at, draws_added, last_draw_number, status, message)
-  VALUES (@source, @startedAt, @finishedAt, @drawsAdded, @lastDrawNumber, @status, @message)
-`;
-
-function writeImportLog(db, entry) {
-  db.prepare(logSql).run(entry);
-}
 
 function lastKnownDraw(db) {
   return db
@@ -92,7 +78,7 @@ export async function fetchLatest(db, { providers, fetchFn = fetch, now = () => 
   const prefix = contiguousPrefix(candidates, sinceDrawNumber);
   const isPartial = prefix.length < candidates.length;
 
-  const insert = db.prepare(insertSql);
+  const insert = prepareInsertDraw(db);
   const createdAt = Date.now();
   const rows = prefix.map((d) => ({
     gameType: GAME_TYPE,

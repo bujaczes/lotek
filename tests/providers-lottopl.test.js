@@ -1,9 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSince, SOURCE } from '../src/server/providers/lottopl.js';
 import { maskFromNumbers } from '../src/server/lib/mask.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from '../src/server/lib/fetch-timeout.js';
 
 const TESTS_DIR = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_PATH = join(TESTS_DIR, '..', 'data', 'fixtures', 'lottopl-response.json');
@@ -156,5 +157,25 @@ describe('providers/lottopl — mapping a real captured response', () => {
     const draws = await fetchSince(0, { fetchFn });
     const draw7380 = draws.find((d) => d.drawNumber === 7380);
     expect(maskFromNumbers(draw7380.numbers)).toBe(maskFromNumbers([5, 6, 12, 38, 41, 43]));
+  });
+
+  describe('a hung request', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('a never-resolving fetchFn fails after the fetch timeout instead of hanging the run forever', async () => {
+      const fetchFn = vi.fn(() => new Promise(() => {})); // e.g. a Cloudflare challenge that never settles
+
+      const promise = fetchSince(0, { fetchFn });
+      const assertion = expect(promise).rejects.toThrow(/timed out after/);
+
+      await vi.advanceTimersByTimeAsync(DEFAULT_FETCH_TIMEOUT_MS);
+      await assertion;
+    });
   });
 });
