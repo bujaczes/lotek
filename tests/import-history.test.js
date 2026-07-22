@@ -213,6 +213,49 @@ describe('importHistory', () => {
     expect(log.message).toMatch(/insert transaction failed/i);
     expect(log.message).toMatch(/forced failure for test/);
   });
+
+  it('rebuilds number_stat/pair_stat after a successful import with new draws', () => {
+    const result = importHistory(db, smallFixture);
+
+    expect(result.statsRebuild).toMatchObject({ status: 'ok', gameType: 'lotto', drawsCount: 3 });
+
+    const numberStatCount = db.prepare('SELECT COUNT(*) AS c FROM number_stat').get().c;
+    expect(numberStatCount).toBe(49);
+    const pairStatCount = db.prepare('SELECT COUNT(*) AS c FROM pair_stat').get().c;
+    expect(pairStatCount).toBe(1176);
+  });
+
+  it('does not rebuild stats on an idempotent rerun that adds 0 draws', () => {
+    importHistory(db, smallFixture);
+    const second = importHistory(db, smallFixture);
+
+    expect(second.drawsAdded).toBe(0);
+    expect(second.statsRebuild).toBeNull();
+  });
+
+  it('a stats-rebuild failure does not corrupt or roll back an already-successful import', () => {
+    // Real SQLite mechanism (not a mock): a trigger that always aborts inserts into
+    // number_stat, forcing rebuildStats(db) to throw partway through its own transaction.
+    db.exec(`
+      CREATE TRIGGER forbid_number_stat_insert
+      BEFORE INSERT ON number_stat
+      BEGIN
+        SELECT RAISE(ABORT, 'forced stats rebuild failure for test');
+      END;
+    `);
+
+    const result = importHistory(db, smallFixture);
+
+    expect(result.status).toBe('ok');
+    expect(result.drawsAdded).toBe(3);
+    expect(result.statsRebuild).toMatchObject({ status: 'failed' });
+    expect(result.statsRebuild.message).toMatch(/forced stats rebuild failure for test/);
+
+    const drawCount = db.prepare('SELECT COUNT(*) AS c FROM draw').get().c;
+    expect(drawCount).toBe(3);
+    const importLog = db.prepare('SELECT * FROM import_log').get();
+    expect(importLog.status).toBe('ok');
+  });
 });
 
 describe('importHistory — integration on the committed dl_snapshot fixture', () => {

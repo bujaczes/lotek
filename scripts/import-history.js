@@ -3,6 +3,7 @@ import { gunzipSync } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import { openDatabase } from '../db/index.js';
 import { parseDlFile, validateContinuity } from '../src/server/lib/parse-dl.js';
+import { rebuildStats } from '../src/server/lib/rebuild-stats.js';
 
 const DEFAULT_URL = 'http://www.mbnet.com.pl/dl.txt';
 const SOURCE = 'mbnet';
@@ -57,6 +58,16 @@ function failImport(db, { startedAt, totalParsed, parseErrors, missing, message 
  * violation) — in that last case a `status: 'failed'` import_log row is written
  * with the caught error's message before the error is re-thrown, so the audit
  * trail survives even though the caller still sees the exception.
+ *
+ * After a successful import that added at least one new draw, `rebuildStats(db)` runs
+ * to rematerialize `number_stat`/`pair_stat`. A rebuild failure must not corrupt the
+ * import that already succeeded and was already logged: it is caught here and reported
+ * via the returned `statsRebuild: {status: 'failed', message}` (never thrown, never
+ * console-logged — this function stays I/O-pure) instead of raising or rolling back the
+ * draw insert. Callers (the CLI `main()` below, or the future scheduler chain in Faza 4)
+ * are expected to inspect `statsRebuild` and retry/alert as needed; until that happens,
+ * `number_stat`/`pair_stat` are simply stale by the newly-added draws, not wrong or
+ * corrupted (they still reflect the last successful rebuild).
  */
 export function importHistory(db, text) {
   const startedAt = Date.now();
@@ -131,6 +142,18 @@ export function importHistory(db, text) {
     message,
   });
 
+  let statsRebuild = null;
+  if (drawsAdded > 0) {
+    try {
+      const rebuildResult = rebuildStats(db);
+      statsRebuild = { status: 'ok', ...rebuildResult };
+    } catch (err) {
+      // Import already succeeded and is already logged above; a rebuild failure is
+      // reported here, not thrown, so it can never roll back or corrupt the import.
+      statsRebuild = { status: 'failed', message: err.message };
+    }
+  }
+
   return {
     status: 'ok',
     drawsAdded,
@@ -139,6 +162,7 @@ export function importHistory(db, text) {
     parseErrors,
     missing: [],
     message,
+    statsRebuild,
   };
 }
 
@@ -177,6 +201,17 @@ async function main() {
         `added=${result.drawsAdded} lastDrawNumber=${result.lastDrawNumber} ` +
         `parseErrors=${result.parseErrors.length}`
     );
+
+    if (result.statsRebuild) {
+      if (result.statsRebuild.status === 'ok') {
+        console.log(
+          `[import-history] stats rebuilt: numberStatRows=${result.statsRebuild.numberStatRows} ` +
+            `pairStatRows=${result.statsRebuild.pairStatRows}`
+        );
+      } else {
+        console.error(`[import-history] stats rebuild FAILED: ${result.statsRebuild.message}`);
+      }
+    }
 
     if (result.status === 'failed') {
       console.error(`[import-history] FAILED: ${result.message}`);
