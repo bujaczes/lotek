@@ -1,0 +1,8 @@
+{
+  "modelVersion": "1.0.0",
+  "halfLifeDraws": 300,
+  "priorStrengthDraws": 780,
+  "chi2Alpha": 0.05,
+  "weights": { "wA": 1.0, "wB": 1.0 },
+  "popularity": {}
+}
