@@ -17,16 +17,22 @@ function panel(eyebrow, title, note) {
 export function createHomeView() {
   let root = null;
   let stopCountdown = null;
+  let controller = null;
 
   return {
     async mount(container) {
+      controller = new AbortController();
+      const mine = controller;
       root = el('div', { class: 'view view--home' }, [
         el('p', { class: 'loading' }, 'Wczytuję ostatnie losowanie…'),
       ]);
       container.append(root);
 
       try {
-        const data = await getLatestDraw();
+        const data = await getLatestDraw({ signal: mine.signal });
+        // The user may have navigated away while the fetch was in flight;
+        // unmount() nulls `root` and aborts, so bail before touching the DOM.
+        if (mine.signal.aborted || !root) return;
         clear(root);
         const hero = createHero(data);
         root.append(
@@ -37,6 +43,7 @@ export function createHomeView() {
         );
         stopCountdown = startCountdown(hero);
       } catch (err) {
+        if (mine.signal.aborted || !root) return;
         clear(root);
         const message = err instanceof ApiError ? err.message : 'Coś poszło nie tak.';
         root.append(
@@ -55,6 +62,8 @@ export function createHomeView() {
     },
 
     unmount() {
+      if (controller) controller.abort();
+      controller = null;
       if (stopCountdown) stopCountdown();
       stopCountdown = null;
       if (root) root.remove();

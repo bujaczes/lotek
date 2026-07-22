@@ -24,7 +24,16 @@ function matchPattern(pattern, path) {
   for (let i = 0; i < pSeg.length; i += 1) {
     if (pSeg[i].startsWith(':')) {
       if (aSeg[i] === '') return null;
-      params[pSeg[i].slice(1)] = decodeURIComponent(aSeg[i]);
+      // Malformed percent-encoding (e.g. "%zz") makes decodeURIComponent throw a
+      // URIError; treat the segment as a non-match so it falls through to 404
+      // instead of crashing the click/popstate handler.
+      let decoded;
+      try {
+        decoded = decodeURIComponent(aSeg[i]);
+      } catch {
+        return null;
+      }
+      params[pSeg[i].slice(1)] = decoded;
     } else if (pSeg[i] !== aSeg[i]) {
       return null;
     }

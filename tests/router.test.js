@@ -36,4 +36,10 @@ describe('matchRoute', () => {
   it('returns notfound for an unknown path', () => {
     expect(matchRoute('/nope')).toEqual({ name: 'notfound', params: {} });
   });
+
+  it('treats a malformed percent-encoded param as notfound instead of throwing', () => {
+    // decodeURIComponent('%zz') throws URIError; must not escape matchRoute.
+    expect(() => matchRoute('/liczba/%zz')).not.toThrow();
+    expect(matchRoute('/liczba/%zz')).toEqual({ name: 'notfound', params: {} });
+  });
 });
