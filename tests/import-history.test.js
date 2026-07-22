@@ -161,6 +161,58 @@ describe('importHistory', () => {
     const count = db.prepare('SELECT COUNT(*) AS c FROM draw').get().c;
     expect(count).toBe(0);
   });
+
+  it('fails when every line fails to parse (e.g. mbnet serving an HTML maintenance page): status failed, no writes, no gap reported', () => {
+    const garbage = [
+      '<!DOCTYPE html>',
+      '<html><body>Service temporarily unavailable</body></html>',
+    ].join('\n');
+
+    const result = importHistory(db, garbage);
+
+    expect(result.status).toBe('failed');
+    expect(result.drawsAdded).toBe(0);
+    expect(result.lastDrawNumber).toBeNull();
+    expect(result.totalParsed).toBe(0);
+    expect(result.parseErrors.length).toBeGreaterThan(0);
+    expect(result.missing).toEqual([]);
+
+    const count = db.prepare('SELECT COUNT(*) AS c FROM draw').get().c;
+    expect(count).toBe(0);
+
+    const log = db.prepare('SELECT * FROM import_log').get();
+    expect(log.status).toBe('failed');
+    expect(log.draws_added).toBe(0);
+    expect(log.message).toMatch(/no draws parsed/i);
+  });
+
+  it('writes a failed import_log row and re-throws when the insert transaction itself throws mid-batch', () => {
+    // Real SQLite mechanism (not a JS mock): a BEFORE INSERT trigger that RAISEs
+    // for draw_number 3 only, so draws 1 and 2 insert successfully first and then
+    // the batch aborts mid-transaction — exactly the "disk full / SQLITE_BUSY"
+    // shape the review asked to cover, without stubbing better-sqlite3 itself.
+    db.exec(`
+      CREATE TRIGGER forbid_draw_3
+      BEFORE INSERT ON draw
+      WHEN NEW.draw_number = 3
+      BEGIN
+        SELECT RAISE(ABORT, 'forced failure for test');
+      END;
+    `);
+
+    expect(() => importHistory(db, smallFixture)).toThrow(/forced failure for test/);
+
+    // better-sqlite3 auto-rolls-back the whole transaction on throw, so even the
+    // draws inserted before the trigger fired (1 and 2) are gone.
+    const count = db.prepare('SELECT COUNT(*) AS c FROM draw').get().c;
+    expect(count).toBe(0);
+
+    const log = db.prepare('SELECT * FROM import_log').get();
+    expect(log.status).toBe('failed');
+    expect(log.draws_added).toBe(0);
+    expect(log.message).toMatch(/insert transaction failed/i);
+    expect(log.message).toMatch(/forced failure for test/);
+  });
 });
 
 describe('importHistory — integration on the committed dl_snapshot fixture', () => {

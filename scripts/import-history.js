@@ -23,43 +23,56 @@ function writeImportLog(db, entry) {
   db.prepare(logSql).run(entry);
 }
 
+function failImport(db, { startedAt, totalParsed, parseErrors, missing, message }) {
+  const finishedAt = Date.now();
+  writeImportLog(db, {
+    source: SOURCE,
+    startedAt,
+    finishedAt,
+    drawsAdded: 0,
+    lastDrawNumber: null,
+    status: 'failed',
+    message,
+  });
+
+  return {
+    status: 'failed',
+    drawsAdded: 0,
+    lastDrawNumber: null,
+    totalParsed,
+    parseErrors,
+    missing,
+    message,
+  };
+}
+
 /**
  * Pure (network-free) import: parse dl.txt-formatted `text`, validate draw-number
  * continuity, and — if continuous — insert new draws into `db` in one transaction
  * (existing (game_type, draw_number) rows are left untouched). Always records a
- * row in import_log. Returns a summary object; never throws on malformed input
- * (parseDlFile/validateContinuity are exception-free by contract).
+ * row in import_log, on every path: a clean run, a rejected run (no parseable
+ * draws, or a numbering gap — both leave the draw table untouched and return a
+ * `status: 'failed'` result without throwing), and even a run where the insert
+ * transaction itself throws (e.g. disk full, SQLITE_BUSY, a DB-level constraint
+ * violation) — in that last case a `status: 'failed'` import_log row is written
+ * with the caught error's message before the error is re-thrown, so the audit
+ * trail survives even though the caller still sees the exception.
  */
 export function importHistory(db, text) {
   const startedAt = Date.now();
   const { draws, errors: parseErrors } = parseDlFile(text);
   const missing = validateContinuity(draws);
 
+  if (draws.length === 0 && parseErrors.length > 0) {
+    const message = `no draws parsed: ${parseErrors.length} parse error(s), 0 valid lines; no draws written`;
+    return failImport(db, { startedAt, totalParsed: 0, parseErrors, missing: [], message });
+  }
+
   if (missing.length > 0) {
-    const finishedAt = Date.now();
     const message =
       `continuity check failed: ${missing.length} missing draw number(s), ` +
       `first missing = ${missing[0]}; ${parseErrors.length} parse error(s); no draws written`;
-
-    writeImportLog(db, {
-      source: SOURCE,
-      startedAt,
-      finishedAt,
-      drawsAdded: 0,
-      lastDrawNumber: null,
-      status: 'failed',
-      message,
-    });
-
-    return {
-      status: 'failed',
-      drawsAdded: 0,
-      lastDrawNumber: null,
-      totalParsed: draws.length,
-      parseErrors,
-      missing,
-      message,
-    };
+    return failImport(db, { startedAt, totalParsed: draws.length, parseErrors, missing, message });
   }
 
   const insert = db.prepare(insertSql);
@@ -87,7 +100,23 @@ export function importHistory(db, text) {
     return added;
   });
 
-  const drawsAdded = insertBatch(rows);
+  let drawsAdded;
+  try {
+    drawsAdded = insertBatch(rows);
+  } catch (err) {
+    // The transaction auto-rolls-back the draw table on throw (better-sqlite3
+    // semantics), but without this catch the caller loses the audit trail too:
+    // record the failure in import_log, then let the error propagate as-is.
+    failImport(db, {
+      startedAt,
+      totalParsed: draws.length,
+      parseErrors,
+      missing: [],
+      message: `insert transaction failed: ${err.message}`,
+    });
+    throw err;
+  }
+
   const lastDrawNumber = draws.length ? Math.max(...draws.map((d) => d.drawNumber)) : null;
   const finishedAt = Date.now();
   const message = `parsed ${draws.length} draw(s), added ${drawsAdded} new, ${parseErrors.length} parse error(s)`;
