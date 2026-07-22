@@ -2,12 +2,30 @@ import { describe, expect, it } from 'vitest';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadConfigFile, loadPrizes } from '../src/server/lib/config.js';
+import { loadConfigFile, loadPrizes, loadSchedule } from '../src/server/lib/config.js';
 
 describe('loadPrizes() — reads config/prizes.json per CONVENTIONS', () => {
   it('returns the exact prize table keyed by hit count, plus betPrice', () => {
     const prizes = loadPrizes();
     expect(prizes).toEqual({ 6: 2000000, 5: 6000, 4: 200, 3: 24, betPrice: 3.0 });
+  });
+});
+
+describe('loadSchedule() — reads config/schedule.json (single source of truth for schedule.js + scheduler.js)', () => {
+  it('returns the exact schedule config, all required keys present', () => {
+    const schedule = loadSchedule();
+    expect(schedule).toEqual({
+      timeZone: 'Europe/Warsaw',
+      drawDays: [2, 4, 6],
+      drawHour: 22,
+      fetchMinute: 5,
+      retryIntervalMinutes: 10,
+      maxRetryAttempts: 12,
+      reconcileDayOfWeek: 0,
+      reconcileHour: 8,
+      watchdogHour: 12,
+      watchdogStaleHours: 24,
+    });
   });
 });
 

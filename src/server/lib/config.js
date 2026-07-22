@@ -6,6 +6,18 @@ const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 // src/server/lib -> up three levels to the project root, then into config/.
 const CONFIG_DIR = join(MODULE_DIR, '..', '..', '..', 'config');
 const PRIZES_KEYS = ['3', '4', '5', '6', 'betPrice'];
+const SCHEDULE_KEYS = [
+  'timeZone',
+  'drawDays',
+  'drawHour',
+  'fetchMinute',
+  'retryIntervalMinutes',
+  'maxRetryAttempts',
+  'reconcileDayOfWeek',
+  'reconcileHour',
+  'watchdogHour',
+  'watchdogStaleHours',
+];
 
 /**
  * Fail-loud JSON config reader: throws a clear, specific error (not a bare ENOENT/
@@ -40,4 +52,19 @@ export function loadPrizes() {
     if (!(key in prizes)) throw new Error(`config/prizes.json missing required key: "${key}"`);
   }
   return prizes;
+}
+
+/**
+ * Loads config/schedule.json (single source of truth for draw days/hours and the
+ * scheduler's retry/reconcile/watchdog timing — see `schedule.js` and `scheduler.js`,
+ * both of which read through here instead of hard-coding these values). Fails loud on a
+ * missing/malformed file or a missing key, same rationale as loadPrizes() above.
+ */
+export function loadSchedule() {
+  const path = join(CONFIG_DIR, 'schedule.json');
+  const schedule = loadConfigFile(path);
+  for (const key of SCHEDULE_KEYS) {
+    if (!(key in schedule)) throw new Error(`config/schedule.json missing required key: "${key}"`);
+  }
+  return schedule;
 }

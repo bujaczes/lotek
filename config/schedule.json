@@ -1,0 +1,12 @@
+{
+  "timeZone": "Europe/Warsaw",
+  "drawDays": [2, 4, 6],
+  "drawHour": 22,
+  "fetchMinute": 5,
+  "retryIntervalMinutes": 10,
+  "maxRetryAttempts": 12,
+  "reconcileDayOfWeek": 0,
+  "reconcileHour": 8,
+  "watchdogHour": 12,
+  "watchdogStaleHours": 24
+}

@@ -4,25 +4,12 @@ import { pathToFileURL } from 'node:url';
 import { openDatabase } from '../db/index.js';
 import { parseDlFile, validateContinuity } from '../src/server/lib/parse-dl.js';
 import { rebuildStats } from '../src/server/lib/rebuild-stats.js';
+import { prepareInsertDraw, writeImportLog } from '../src/server/lib/draw-writer.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from '../src/server/lib/fetch-timeout.js';
 
 const DEFAULT_URL = 'http://www.mbnet.com.pl/dl.txt';
 const SOURCE = 'mbnet';
 const GAME_TYPE = 'lotto';
-
-const insertSql = `
-  INSERT INTO draw (game_type, draw_number, drawn_at, n1, n2, n3, n4, n5, n6, mask, source, created_at)
-  VALUES (@gameType, @drawNumber, @drawnAt, @n1, @n2, @n3, @n4, @n5, @n6, @mask, @source, @createdAt)
-  ON CONFLICT(game_type, draw_number) DO NOTHING
-`;
-
-const logSql = `
-  INSERT INTO import_log (source, started_at, finished_at, draws_added, last_draw_number, status, message)
-  VALUES (@source, @startedAt, @finishedAt, @drawsAdded, @lastDrawNumber, @status, @message)
-`;
-
-function writeImportLog(db, entry) {
-  db.prepare(logSql).run(entry);
-}
 
 function failImport(db, { startedAt, totalParsed, parseErrors, missing, message }) {
   const finishedAt = Date.now();
@@ -86,7 +73,7 @@ export function importHistory(db, text) {
     return failImport(db, { startedAt, totalParsed: draws.length, parseErrors, missing, message });
   }
 
-  const insert = db.prepare(insertSql);
+  const insert = prepareInsertDraw(db);
   const createdAt = Date.now();
   const rows = draws.map((d) => ({
     gameType: GAME_TYPE,
@@ -180,7 +167,7 @@ async function readInputText(filePath) {
     const buf = readFileSync(filePath);
     return filePath.endsWith('.gz') ? gunzipSync(buf).toString('utf8') : buf.toString('utf8');
   }
-  const res = await fetch(DEFAULT_URL);
+  const res = await fetch(DEFAULT_URL, { signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS) });
   if (!res.ok) {
     throw new Error(`failed to download ${DEFAULT_URL}: HTTP ${res.status}`);
   }

@@ -1,0 +1,80 @@
+{
+  "_comment": "Trimmed real response captured 2026-07-22 via GET https://www.lotto.pl/api/lotteries/draw-results/by-gametype?game=Lotto&index=1&size=10&sort=drawDate&order=DESC (only the first 3 of 10 items kept; envelope fields, item shape and field names are exactly as returned). Draw 7381 (2026-07-21) is the newest draw at capture time and matches the same Ideo.Core.App.Areas.Open.Api.v1.Models.Lotteries.DrawResults.DrawResultsGrouped/ListItemModel schema published at https://developers.lotto.pl/swagger/open-api-v1/swagger.json for the official OpenAPI's by-date-per-game endpoint, so this fixture doubles as the openapi provider's response shape.",
+  "totalRows": 0,
+  "items": [
+    {
+      "drawSystemId": 7381,
+      "drawDate": "2026-07-21T22:00:00Z",
+      "gameType": "Lotto",
+      "multiplierValue": 0,
+      "results": [
+        {
+          "drawDate": "2026-07-21T22:00:00Z",
+          "drawSystemId": 7381,
+          "gameType": "Lotto",
+          "resultsJson": [29, 4, 27, 23, 33, 16],
+          "specialResults": []
+        },
+        {
+          "drawDate": "2026-07-21T22:00:00Z",
+          "drawSystemId": 7381,
+          "gameType": "LottoPlus",
+          "resultsJson": [14, 29, 25, 8, 18, 46],
+          "specialResults": []
+        }
+      ],
+      "showSpecialResults": true,
+      "isNewEuroJackpotDraw": false
+    },
+    {
+      "drawSystemId": 7380,
+      "drawDate": "2026-07-18T22:00:00Z",
+      "gameType": "Lotto",
+      "multiplierValue": 0,
+      "results": [
+        {
+          "drawDate": "2026-07-18T22:00:00Z",
+          "drawSystemId": 7380,
+          "gameType": "Lotto",
+          "resultsJson": [38, 41, 5, 6, 12, 43],
+          "specialResults": []
+        },
+        {
+          "drawDate": "2026-07-18T22:00:00Z",
+          "drawSystemId": 7380,
+          "gameType": "LottoPlus",
+          "resultsJson": [25, 14, 26, 34, 40, 49],
+          "specialResults": []
+        }
+      ],
+      "showSpecialResults": true,
+      "isNewEuroJackpotDraw": false
+    },
+    {
+      "drawSystemId": 7379,
+      "drawDate": "2026-07-16T22:00:00Z",
+      "gameType": "Lotto",
+      "multiplierValue": 0,
+      "results": [
+        {
+          "drawDate": "2026-07-16T22:00:00Z",
+          "drawSystemId": 7379,
+          "gameType": "Lotto",
+          "resultsJson": [31, 38, 18, 14, 15, 47],
+          "specialResults": []
+        },
+        {
+          "drawDate": "2026-07-16T22:00:00Z",
+          "drawSystemId": 7379,
+          "gameType": "LottoPlus",
+          "resultsJson": [21, 38, 5, 20, 34, 1],
+          "specialResults": []
+        }
+      ],
+      "showSpecialResults": true,
+      "isNewEuroJackpotDraw": false
+    }
+  ],
+  "meta": {},
+  "code": 200
+}
