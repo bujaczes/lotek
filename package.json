@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "import:history": "node scripts/import-history.js",
-    "stats:rebuild": "node scripts/rebuild-stats.js"
+    "stats:rebuild": "node scripts/rebuild-stats.js",
+    "fetch:latest": "node scripts/fetch-latest.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.1",
