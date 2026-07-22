@@ -1,16 +1,13 @@
 import { el, clear } from '../dom.js';
-import { getLatestDraw, ApiError } from '../api.js';
+import { getLatestDraw, getBlanketStats, getRankingsStats, ApiError } from '../api.js';
 import { createHero, startCountdown } from '../components/hero.js';
+import { createBlanket } from '../components/blanket.js';
+import { createRankings } from '../components/rankings.js';
+import { createTyperTeaser } from '../components/typer-teaser.js';
 
-// Sections below the hero are owned by later tasks (blankiet, rankings, Typer
-// teaser). We render their frames now so the page composition is final and
-// those tasks only fill the body.
-function panel(eyebrow, title, note) {
-  return el('section', { class: 'panel' }, [
-    el('p', { class: 'eyebrow' }, eyebrow),
-    el('h2', { class: 'panel__title' }, title),
-    el('p', { class: 'panel__note' }, note),
-    el('span', { class: 'panel__soon' }, 'Wkrótce'),
+function sectionError(message) {
+  return el('section', { class: 'section-error card' }, [
+    el('p', { class: 'section-error__msg' }, message),
   ]);
 }
 
@@ -30,18 +27,38 @@ export function createHomeView() {
 
       try {
         const data = await getLatestDraw({ signal: mine.signal });
-        // The user may have navigated away while the fetch was in flight;
-        // unmount() nulls `root` and aborts, so bail before touching the DOM.
+        // unmount() nulls `root` and aborts; bail before touching the DOM if the
+        // user navigated away while the fetch was in flight.
         if (mine.signal.aborted || !root) return;
         clear(root);
+
         const hero = createHero(data);
-        root.append(
-          hero,
-          panel('Blankiet 7×7', 'Mapa ciepła 49 liczb', 'Każda liczba jako kula na kuponie — jaśniejsza, im częściej pada. Tryby: częstość, świeżość, z-score.'),
-          panel('Rankingi', 'Gorące i zimne', 'Najczęściej i najrzadziej losowane liczby, każda z z-score obok — żeby było widać, że rekordzistki mieszczą się w szumie.'),
-          panel('Typer', 'Sprawdź swój zestaw', 'Jeden zestaw na następne losowanie z uczciwym uzasadnieniem i historią własnych trafień.')
-        );
+        const blanketSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję blankiet…')]);
+        const rankingsSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję rankingi…')]);
+        root.append(hero, blanketSlot, rankingsSlot, createTyperTeaser());
         stopCountdown = startCountdown(hero);
+
+        // Blankiet + rankings are non-fatal: each fills its slot independently, so
+        // one failing endpoint never blanks the whole page.
+        const [blanket, rankings] = await Promise.allSettled([
+          getBlanketStats({ signal: mine.signal }),
+          getRankingsStats({ signal: mine.signal }),
+        ]);
+        if (mine.signal.aborted || !root) return;
+
+        clear(blanketSlot);
+        blanketSlot.append(
+          blanket.status === 'fulfilled'
+            ? createBlanket(blanket.value)
+            : sectionError('Nie udało się wczytać blankietu.')
+        );
+
+        clear(rankingsSlot);
+        rankingsSlot.append(
+          rankings.status === 'fulfilled'
+            ? createRankings(rankings.value)
+            : sectionError('Nie udało się wczytać rankingów.')
+        );
       } catch (err) {
         if (mine.signal.aborted || !root) return;
         clear(root);

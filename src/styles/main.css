@@ -508,38 +508,421 @@ button {
   letter-spacing: 0.04em;
 }
 
-/* below-hero placeholder panels (owned by later tasks) */
-.panel {
-  position: relative;
+/* home section slots (blankiet / rankings load into these) */
+.home-slot {
+  display: block;
+}
+.section-error {
   padding: var(--sp-4);
-  background: var(--surface);
-  border: 1px dashed var(--color-line);
-  border-radius: var(--radius);
+  color: var(--ink-55);
+}
+.section__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--step-2);
+  letter-spacing: -0.015em;
+}
+
+/* ============================================================================
+   BLANKIET 7x7 — the signature element
+   ========================================================================== */
+.blanket-section {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--sp-4);
 }
-.panel__title {
-  font-size: var(--step-2);
-  font-weight: 600;
+.blanket-section__head,
+.rankings-section__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
 }
-.panel__note {
-  font-size: var(--step-0);
-  color: var(--ink-55);
-  max-width: 46ch;
-}
-.panel__soon {
-  position: absolute;
-  top: var(--sp-4);
-  right: var(--sp-4);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-40);
+
+/* segmented control — shared by the mode switch and the ranking window tabs */
+.modeswitch,
+.rank-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-sunk);
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  padding: 0.15rem 0.5rem;
+}
+.modeswitch__btn,
+.rank-tab {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-55);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.modeswitch__btn:hover,
+.rank-tab:hover {
+  color: var(--color-ink);
+}
+.modeswitch__btn.is-active,
+.rank-tab[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--color-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(25, 26, 46, 0.12);
+}
+
+/* the coupon grid */
+.blanket__stage {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+  padding: 1.5%;
+}
+.blanket {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  overflow: visible;
+}
+.blanket__field {
+  cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.18s cubic-bezier(0.22, 1.15, 0.36, 1);
+}
+.blanket__field:hover,
+.blanket__field:focus-visible {
+  transform: scale(1.07);
+}
+.blanket__field:focus {
+  outline: none;
+}
+.blanket__field:focus-visible .blanket__disc {
+  stroke: var(--color-ink);
+  stroke-width: 4;
+}
+.blanket__disc {
+  transition: fill 0.45s ease;
+}
+.blanket__gloss {
+  pointer-events: none;
+}
+.blanket__dot {
+  stroke: var(--surface);
+  stroke-width: 2.5;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.blanket.is-mode-freshness .blanket__dot {
+  opacity: 0; /* freshness is already the fill in this mode — avoid double-encoding */
+}
+.blanket__label {
+  font-size: 30px;
+  font-weight: 500;
+  pointer-events: none;
+  user-select: none;
+  transition: fill 0.45s ease;
+}
+
+/* tooltip */
+.blanket-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 14px));
+  z-index: 5;
+  min-width: 8.5rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--color-ink);
+  color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 24px rgba(25, 26, 46, 0.22);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  text-align: left;
+}
+.blanket-tip.is-below {
+  transform: translate(-50%, 14px);
+}
+.blanket-tip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+.blanket-tip.is-below::after {
+  bottom: auto;
+  top: -5px;
+}
+.blanket-tip__num {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1.1;
+}
+.blanket-tip__row {
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--color-bg) 80%, transparent);
+}
+.blanket-tip__row b {
+  color: var(--color-bg);
+}
+.blanket-tip__gap {
+  color: var(--color-accent);
+}
+
+/* legend + educational caption */
+.blanket-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.blanket-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 24rem;
+}
+.blanket-legend__track {
+  position: relative;
+  flex: 1;
+  height: 10px;
+}
+.blanket-legend__bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--legend-gradient, var(--color-line));
+  border: 1px solid rgba(25, 26, 46, 0.08);
+}
+.blanket-legend__mid {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ink-40);
+}
+.blanket-legend__end {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-55);
+  flex: none;
+}
+.blanket__caption {
+  max-width: 60ch;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--ink-55);
+}
+.blanket__caption b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   RANKINGS — hot / cold, quiet and disciplined
+   ========================================================================== */
+.rankings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.rank-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+.rank-col {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.rank-col__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.rank-col__flag {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  flex: none;
+}
+.rank-col__flag--hot {
+  background: radial-gradient(circle at 34% 30%, #ffd9a0, var(--color-hot) 75%);
+}
+.rank-col__flag--cold {
+  background: radial-gradient(circle at 34% 30%, #cfe2ee, #3e6c8e 78%);
+}
+.rank-col__title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+.rank-col__hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.rank-row {
+  display: grid;
+  grid-template-columns: 1.4rem auto 1fr;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+.rank-row:hover {
+  background: var(--surface-sunk);
+}
+.rank-row__pos {
+  font-size: 0.8rem;
+  color: var(--ink-40);
+  text-align: right;
+}
+.miniball {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-ink);
+  background: radial-gradient(
+    circle at 33% 27%,
+    #ffffff 0%,
+    var(--heat-0) 14%,
+    var(--color-accent) 52%,
+    var(--ball-mid) 78%,
+    var(--ball-edge) 100%
+  );
+  box-shadow:
+    inset 0 -2px 4px rgba(180, 120, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    0 2px 5px rgba(217, 154, 0, 0.28);
+}
+.rank-row__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.rank-row__count {
+  font-size: var(--step--1);
+  color: var(--ink-70);
+}
+.rank-row__count b {
+  color: var(--color-ink);
+}
+.rank-row__z {
+  font-size: 0.72rem;
+  color: var(--ink-55);
+  white-space: nowrap;
+}
+.rank-row__z-scope {
+  margin-left: 0.3rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-40);
+}
+.rankings__caption {
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--ink-55);
+}
+
+/* ============================================================================
+   TYPER teaser
+   ========================================================================== */
+.typer-teaser {
+  position: relative;
+  overflow: hidden;
+  padding: var(--sp-5) var(--sp-4);
+}
+.typer-teaser::after {
+  content: '';
+  position: absolute;
+  right: -8%;
+  top: -40%;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 196, 0, 0.16), transparent 68%);
+  pointer-events: none;
+}
+.typer-teaser__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 54ch;
+}
+.typer-teaser__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.typer-teaser__status {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  background: var(--surface-sunk);
+}
+.typer-teaser__lead {
+  font-size: var(--step-0);
+  color: var(--ink-70);
+}
+.typer-teaser__lead b {
+  color: var(--color-ink);
+}
+.typer-teaser__cta {
+  align-self: flex-start;
+  margin-top: var(--sp-2);
+  font-weight: 600;
+  color: var(--color-ink);
+  border-bottom: 2px solid var(--color-accent);
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease;
+}
+.typer-teaser__cta:hover {
+  border-color: var(--color-ink);
 }
 
 /* ---- error / stub / 404 ------------------------------------------------ */
@@ -604,9 +987,27 @@ button {
 }
 
 /* ---- responsive -------------------------------------------------------- */
+@media (max-width: 33.99rem) {
+  .blanket-section__head,
+  .rankings-section__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .modeswitch,
+  .rank-tabs {
+    align-self: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
 @media (min-width: 34rem) {
   .chips {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 40rem) {
+  .rank-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 @media (min-width: 52rem) {
@@ -635,6 +1036,19 @@ button {
   }
   .chip:hover {
     transform: none;
+  }
+  .blanket__field,
+  .blanket__disc,
+  .blanket__label,
+  .blanket__dot {
+    transition: none;
+  }
+  .blanket__field:hover,
+  .blanket__field:focus-visible {
+    transform: none;
+  }
+  .rank-row {
+    transition: none;
   }
   * {
     scroll-behavior: auto;

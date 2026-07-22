@@ -45,6 +45,23 @@ export function countdownParts(remainingMs) {
   };
 }
 
+// Polish plural picker. forms = [one, few, many]:
+//   1 -> one; 2..4 (but not 12..14) -> few; everything else -> many.
+export function pluralPl(n, forms) {
+  const abs = Math.abs(n);
+  if (abs === 1) return forms[0];
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return forms[1];
+  return forms[2];
+}
+
+// "ile losowań temu" phrase for a current gap (0 = drawn in the latest draw).
+export function drawsAgo(gap) {
+  if (gap === 0) return 'w ostatnim losowaniu';
+  return `${gap} ${pluralPl(gap, ['losowanie', 'losowania', 'losowań'])} temu`;
+}
+
 const pad2 = (n) => String(n).padStart(2, '0');
 const dayWord = (days) => (days === 1 ? 'dzień' : 'dni');
 

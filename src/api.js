@@ -26,3 +26,7 @@ async function apiGet(path, { signal } = {}) {
 export const getLatestDraw = (opts) => apiGet('/draws/latest', opts);
 export const getDraw = (nr, opts) => apiGet(`/draws/${nr}`, opts);
 export const getNumberCareer = (n, opts) => apiGet(`/numbers/${n}`, opts);
+// Bare array of 49 entries { number, total, last50, last100, currentGap, zScore, lastDrawnAt }.
+export const getBlanketStats = (opts) => apiGet('/stats/blanket', opts);
+// { hot, cold } x { all, last100, currentYear } x 10 entries { number, count, zScore }.
+export const getRankingsStats = (opts) => apiGet('/stats/rankings', opts);

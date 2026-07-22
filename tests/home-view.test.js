@@ -1,17 +1,37 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 
-// Control the fetch promise so we can unmount mid-flight.
+// Control the latest-draw fetch so we can unmount mid-flight. The blankiet and
+// rankings fetches resolve immediately with minimal valid shapes so the home
+// view's secondary sections render (or, when unmounted early, are never reached).
 let resolveLatest;
-vi.mock('../src/api.js', () => ({
-  ApiError: class ApiError extends Error {},
-  getLatestDraw: vi.fn(
-    () =>
-      new Promise((resolve) => {
-        resolveLatest = resolve;
-      })
-  ),
-}));
+vi.mock('../src/api.js', () => {
+  const blanket = Array.from({ length: 49 }, (_, i) => ({
+    number: i + 1,
+    total: 900,
+    last50: 5,
+    last100: 10,
+    currentGap: i,
+    zScore: 0,
+    lastDrawnAt: '2026-06-13',
+  }));
+  const ten = (start) => Array.from({ length: 10 }, (_, i) => ({ number: start + i, count: 10 - i, zScore: 0 }));
+  const rankings = {
+    hot: { all: ten(1), last100: ten(1), currentYear: ten(1) },
+    cold: { all: ten(40), last100: ten(40), currentYear: ten(40) },
+  };
+  return {
+    ApiError: class ApiError extends Error {},
+    getLatestDraw: vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveLatest = resolve;
+        })
+    ),
+    getBlanketStats: vi.fn(() => Promise.resolve(blanket)),
+    getRankingsStats: vi.fn(() => Promise.resolve(rankings)),
+  };
+});
 
 import { createHomeView } from '../src/views/home.js';
 
@@ -48,6 +68,10 @@ describe('home view lifecycle', () => {
     await mounting;
 
     expect(container.querySelectorAll('.ball')).toHaveLength(6);
+    // secondary sections fill their slots once their fetches resolve
+    expect(container.querySelectorAll('.blanket__field')).toHaveLength(49);
+    expect(container.querySelectorAll('.rank-col')).toHaveLength(2);
+    expect(container.querySelector('.typer-teaser')).not.toBeNull();
     view.unmount();
   });
 });
