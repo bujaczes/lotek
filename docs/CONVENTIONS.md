@@ -27,7 +27,7 @@ Wiążące dla każdego zadania. Wzorzec domowy = Panoramix/Hankometr (Node, jed
 
 - C(49,6) = 13 983 816
 - P(≥1 para sąsiadujących liczb) = 1 − C(44,6)/C(49,6) ≈ 0,4952
-- P(≥1 wspólna z poprzednim losowaniem) = 1 − C(43,6)/C(49,6) ≈ 0,5638
+- P(≥1 wspólna z poprzednim losowaniem) = 1 − C(43,6)/C(49,6) ≈ 0,5640 (dokładnie 0,564035…; wiążący jest wzór, nie zaokrąglenie)
 - E[trafienia kuponu] = 36/49 ≈ 0,7347; rozkład trafień hipergeometryczny (N=49, K=6, n=6):
   P(3) = 246 820/13 983 816, P(4) = 13 545/13 983 816, P(5) = 258/13 983 816, P(6) = 1/13 983 816
 - Oczekiwana liczba par w N losowaniach: E[para] = N·6·5/(49·48) = N·5/392

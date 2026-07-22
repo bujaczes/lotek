@@ -88,6 +88,11 @@ describe('POST /api/wehikul', () => {
     expect(balance.net).toBeCloseTo(expectedWinnings - 18.0, 10);
   });
 
+  it('echoes the configured stakes so the UI can spell out what the balance assumes', async () => {
+    const res = await request(app).post('/api/wehikul').send({ numbers: USER_NUMBERS });
+    expect(res.body.prizes).toEqual({ 3: 24, 4: 200, 5: 6000, 6: 2000000, betPrice: 3.0 });
+  });
+
   it('includes a Polish disclaimer mentioning "szacunek edukacyjny"', async () => {
     const res = await request(app).post('/api/wehikul').send({ numbers: USER_NUMBERS });
     expect(res.body.disclaimer).toMatch(/szacunek edukacyjny/i);
