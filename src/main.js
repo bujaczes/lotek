@@ -1,6 +1,7 @@
 import './styles/main.css';
 import { el } from './dom.js';
 import { createRouter } from './router.js';
+import { buildMeta, applyMeta } from './meta.js';
 import { createHomeView } from './views/home.js';
 import { createStatsView } from './views/stats.js';
 import { createNumberView } from './views/number.js';
@@ -24,16 +25,6 @@ const NAV = [
   { href: '/typer', label: 'Typer', route: 'typer' },
   { href: '/wehikul', label: 'Wehikuł', route: 'wehikul' },
 ];
-
-const TITLES = {
-  home: 'Ostatnie losowanie',
-  stats: 'Statystyki',
-  number: 'Kariera liczby',
-  draw: 'Losowanie',
-  typer: 'Typer',
-  wehikul: 'Wehikuł czasu',
-  notfound: 'Nie znaleziono',
-};
 
 function buildShell() {
   const navLinks = NAV.map((item) =>
@@ -64,6 +55,15 @@ function buildShell() {
         el('a', { href: 'https://www.lotto.pl', target: '_blank', rel: 'noopener' }, 'lotto.pl'),
         '.',
       ]),
+      el('p', { class: 'site-footer__line site-footer__muted' }, [
+        'Kod źródłowy: ',
+        el(
+          'a',
+          { href: 'https://github.com/bujaczes/lotek', target: '_blank', rel: 'noopener' },
+          'github.com/bujaczes/lotek'
+        ),
+        '.',
+      ]),
     ]),
   ]);
 
@@ -91,7 +91,7 @@ function boot() {
   const router = createRouter((match) => {
     if (currentView) currentView.unmount();
     shell.setActive(match.name);
-    document.title = `LOTEK — ${TITLES[match.name] || ''}`.trim();
+    applyMeta(buildMeta(match.name, match.params));
     const factory = viewFactories[match.name] || viewFactories.notfound;
     currentView = factory();
     currentView.mount(shell.viewContainer, match.params);

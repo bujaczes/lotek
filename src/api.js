@@ -60,6 +60,8 @@ export const getNumberCareer = (n, opts) => apiGet(`/numbers/${n}`, opts);
 export const getBlanketStats = (opts) => apiGet('/stats/blanket', opts);
 // { hot, cold } x { all, last100, currentYear } x 10 entries { number, count, zScore }.
 export const getRankingsStats = (opts) => apiGet('/stats/rankings', opts);
+// { fact: { type, text } | null } — the "ciekawostka dnia" for the latest draw.
+export const getFact = (opts) => apiGet('/facts/latest', opts);
 
 // --- /statystyki ---------------------------------------------------------
 // { histogram, theoretical, lastSum, percentile, sector }.
@@ -82,3 +84,6 @@ export const getRecordsStats = (opts) => apiGet('/stats/records', opts);
 // --- /typer --------------------------------------------------------------
 // { current: { prediction, commentary } | null, history: [...], nullHypothesis }.
 export const getTyper = (opts) => apiGet('/typer', opts);
+// "Sprawdzam!" self-scorecard over evaluated predictions:
+// { perPrediction, cumulative, distribution, balance, variance, expectedPerCoupon, evaluatedCount }.
+export const getTyperScorecard = (opts) => apiGet('/typer/scorecard', opts);

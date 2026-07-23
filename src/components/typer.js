@@ -177,9 +177,5 @@ export function historySection(history) {
       )
     );
   }
-  children.push(
-    el('p', { class: 'typer-hist__note' },
-      'Wykres skumulowanych trafień vs oczekiwane 0,7347 na kupon (pasmo ±2σ) dołączy w kolejnym kroku.')
-  );
   return el('section', { class: 'typer-history card' }, children);
 }

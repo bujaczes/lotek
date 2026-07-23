@@ -55,6 +55,18 @@ export function loadPrizes() {
 }
 
 /**
+ * Prize amount (zł) a single coupon wins for `hits` matches, from a loaded prizes config.
+ * Only 3+ hits pay (CONVENTIONS.md tier correction); fewer than 3, an unknown hit count, or
+ * a missing/non-numeric entry all resolve to 0 — never NaN. The single source of the
+ * "hits → winnings" rule, shared by the wehikuł balance and the Typer self-scorecard.
+ */
+export function prizeForHits(prizes, hits) {
+  if (hits == null || hits < 3) return 0;
+  const amount = prizes[String(hits)];
+  return typeof amount === 'number' ? amount : 0;
+}
+
+/**
  * Loads config/schedule.json (single source of truth for draw days/hours and the
  * scheduler's retry/reconcile/watchdog timing — see `schedule.js` and `scheduler.js`,
  * both of which read through here instead of hard-coding these values). Fails loud on a

@@ -30,6 +30,7 @@ vi.mock('../src/api.js', () => {
     ),
     getBlanketStats: vi.fn(() => Promise.resolve(blanket)),
     getRankingsStats: vi.fn(() => Promise.resolve(rankings)),
+    getFact: vi.fn(() => Promise.resolve({ fact: { type: 'zscore', text: 'Ciekawostka testowa.' } })),
     getTyper: vi.fn(() =>
       Promise.resolve({
         current: null,
@@ -79,6 +80,9 @@ describe('home view lifecycle', () => {
     expect(container.querySelectorAll('.blanket__field')).toHaveLength(49);
     expect(container.querySelectorAll('.rank-col')).toHaveLength(2);
     expect(container.querySelector('.typer-teaser')).not.toBeNull();
+    const fact = container.querySelector('.fact-card');
+    expect(fact).not.toBeNull();
+    expect(fact.textContent).toContain('Ciekawostka testowa.');
     view.unmount();
   });
 });

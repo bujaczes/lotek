@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="LOTEK — obserwatorium Dużego Lotka">
+  <defs>
+    <radialGradient id="b" cx="38%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#fff6d1"/>
+      <stop offset="42%" stop-color="#ffc400"/>
+      <stop offset="100%" stop-color="#d99a00"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#fcfcfa"/>
+  <rect x="0" y="0" width="1200" height="10" fill="#ffc400"/>
+
+  <!-- a row of Lotto balls: the world of the object, not a dashboard -->
+  <g font-family="'JetBrains Mono', ui-monospace, monospace" font-size="46" font-weight="600" fill="#191a2e" text-anchor="middle">
+    <g transform="translate(190,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">4</text>
+    </g>
+    <g transform="translate(350,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">16</text>
+    </g>
+    <g transform="translate(510,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">23</text>
+    </g>
+    <g transform="translate(670,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">27</text>
+    </g>
+    <g transform="translate(830,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">29</text>
+    </g>
+    <g transform="translate(990,150)">
+      <circle r="62" fill="url(#b)" stroke="#d99a00" stroke-width="2"/>
+      <ellipse cx="-16" cy="-22" rx="18" ry="10" fill="#fffbe9" opacity="0.7"/>
+      <text y="16">33</text>
+    </g>
+  </g>
+
+  <text x="100" y="400" font-family="'Bricolage Grotesque', system-ui, sans-serif" font-size="128" font-weight="700" fill="#191a2e" letter-spacing="-3">LOTEK</text>
+  <text x="104" y="470" font-family="'Instrument Sans', system-ui, sans-serif" font-size="42" fill="#191a2e" opacity="0.72">Obserwatorium Dużego Lotka — 6 z 49</text>
+  <text x="104" y="530" font-family="'Instrument Sans', system-ui, sans-serif" font-size="30" fill="#191a2e" opacity="0.5">Statystyki historyczne i uczciwy, deterministyczny Typer</text>
+</svg>

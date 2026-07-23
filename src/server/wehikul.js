@@ -1,5 +1,5 @@
 import { maskFromNumbers } from './lib/mask.js';
-import { loadPrizes } from './lib/config.js';
+import { loadPrizes, prizeForHits } from './lib/config.js';
 
 const GAME_TYPE = 'lotto';
 const MIN_HIT_TIER = 3;
@@ -46,7 +46,7 @@ export function wehikulHandler(db) {
       if (row.hits >= MIN_HIT_TIER) {
         hits[row.hits] = (hits[row.hits] || 0) + 1;
         occurrences.push({ drawNumber: row.draw_number, date: row.drawn_at, hits: row.hits });
-        winnings += prizes[String(row.hits)] || 0;
+        winnings += prizeForHits(prizes, row.hits);
       }
     }
 

@@ -18,6 +18,8 @@ import {
 import { numberCareerHandler } from './numbers.js';
 import { wehikulHandler } from './wehikul.js';
 import { typerHandler } from './typer.js';
+import { scorecardHandler } from './scorecard.js';
+import { factsLatestHandler } from './facts.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = join(MODULE_DIR, '..', '..', 'dist');
@@ -51,6 +53,9 @@ export function createApp(db) {
 
   app.get('/api/numbers/:n', numberCareerHandler(db));
 
+  app.get('/api/facts/latest', factsLatestHandler(db));
+
+  app.get('/api/typer/scorecard', scorecardHandler(db));
   app.get('/api/typer', typerHandler(db));
 
   app.post('/api/wehikul', wehikulHandler(db));

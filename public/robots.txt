@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# LOTEK — hobbystyczny agregator publicznych danych o losowaniach Dużego Lotka.
+# Brak sitemap.xml: aplikacja to SPA na History API bez prerenderingu.
