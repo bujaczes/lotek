@@ -58,7 +58,11 @@ function buildShell() {
         '.',
       ]),
       el('p', { class: 'site-footer__line site-footer__brand' }, [
-        el('span', { class: 'site-footer__name' }, 'rockingchair.dev'),
+        el(
+          'a',
+          { class: 'site-footer__name', href: 'https://rockingchair.dev', target: '_blank', rel: 'noopener' },
+          'rockingchair.dev'
+        ),
         ' © 2026',
       ]),
     ]),

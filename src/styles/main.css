@@ -236,6 +236,12 @@ button {
   color: var(--color-ink);
   font-weight: 500;
 }
+a.site-footer__name {
+  border-bottom: 1px solid var(--ink-40);
+}
+a.site-footer__name:hover {
+  border-bottom-color: var(--color-ink);
+}
 
 /* ---- shared bits ------------------------------------------------------- */
 .eyebrow {
