@@ -1,8 +1,38 @@
 import { el } from '../dom.js';
+import { createBall } from './ball.js';
+import { formatLongDate } from '../format.js';
 
-// Quiet CTA card bridging the home page to the Typer (live in Faza 5). Until then
-// it states the not-yet-live status honestly and links to the Typer page.
-export function createTyperTeaser() {
+// Home -> Typer bridge card. With a live current pick it shows the real six balls and the
+// draw it targets; without one (no prediction computed yet) it falls back to the honest
+// "not yet live" state. Either way it links through to /typer.
+export function createTyperTeaser(current = null) {
+  if (current && current.prediction && Array.isArray(current.prediction.numbers)) {
+    return liveTeaser(current.prediction);
+  }
+  return placeholderTeaser();
+}
+
+function liveTeaser(prediction) {
+  const head = [el('p', { class: 'eyebrow' }, 'Typer'), el('span', { class: 'typer-teaser__status typer-teaser__status--live' }, 'Typ gotowy')];
+  const meta = prediction.drawDate
+    ? `Losowanie nr ${prediction.forDrawNumber} · ${formatLongDate(prediction.drawDate)}`
+    : `Losowanie nr ${prediction.forDrawNumber}`;
+  return el('section', { class: 'typer-teaser card' }, [
+    el('div', { class: 'typer-teaser__body' }, [
+      el('div', { class: 'typer-teaser__head' }, head),
+      el('h2', { class: 'section__title' }, 'Typ na najbliższe losowanie'),
+      el('p', { class: 'typer-teaser__meta' }, meta),
+      el('div', { class: 'typer-balls typer-balls--alt' }, prediction.numbers.map((n, i) => createBall(n, i))),
+      el('p', { class: 'typer-teaser__lead' }, [
+        'Deterministyczny typ z pełnym „dlaczego te liczby”. Uczciwie: żaden model nie podnosi szansy na szóstkę — ',
+        el('b', {}, 'liczy się opłacalność, jeśli wygra.'),
+      ]),
+      el('a', { class: 'typer-teaser__cta', href: '/typer' }, 'Zobacz uzasadnienie →'),
+    ]),
+  ]);
+}
+
+function placeholderTeaser() {
   return el('section', { class: 'typer-teaser card' }, [
     el('div', { class: 'typer-teaser__body' }, [
       el('div', { class: 'typer-teaser__head' }, [

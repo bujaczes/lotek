@@ -1,3 +1,5 @@
+import { invalidateCache } from './cache.js';
+
 const GAME_TYPE = 'lotto';
 
 // One statement does the whole job entirely inside SQLite: `prediction.mask & draw.mask`
@@ -34,5 +36,8 @@ const evaluateSql = `
  */
 export function evaluatePredictions(db, { gameType = GAME_TYPE } = {}) {
   const result = db.prepare(evaluateSql).run({ gameType });
+  // A newly-scored prediction changes the /api/typer history/current payload, so drop the
+  // cache — same choke-point convention as rebuildStats and the engine's persist step.
+  if (result.changes > 0) invalidateCache();
   return { evaluated: result.changes };
 }

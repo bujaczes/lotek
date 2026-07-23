@@ -144,7 +144,10 @@ describe('runPrediction — result shape and persistence', () => {
       expect(JSON.parse(row.numbers)).toEqual(result.numbers);
       expect(row.mask).toBe(maskFromNumbers(result.numbers));
       expect(row.model_version).toBe(cfg.modelVersion);
-      expect(row.commentary).toBeNull(); // Task 16 fills it
+      // Task 16 fills the deterministic "dlaczego te liczby" narrative.
+      expect(typeof row.commentary).toBe('string');
+      expect(row.commentary).toContain(`Typ na losowanie nr ${maxDraw + 1}`);
+      expect(row.commentary).toContain('1 : 13 983 816');
       expect(JSON.parse(row.alternatives)).toHaveLength(3);
 
       // Re-run overwrites in place (ON CONFLICT DO UPDATE) — still a single row.

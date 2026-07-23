@@ -2,6 +2,8 @@ import { Worker } from 'node:worker_threads';
 import { performance } from 'node:perf_hooks';
 import { readDraws } from '../rebuild-stats.js';
 import { maskFromNumbers } from '../mask.js';
+import { nextDrawDate, warsawDateIso } from '../schedule.js';
+import { invalidateCache } from '../cache.js';
 import { decayedCounts, biasZ, chi2Stat } from './bias.js';
 import {
   numberWeights,
@@ -10,6 +12,7 @@ import {
   penaltyBreakdown,
 } from './popularity.js';
 import { enumerateTopK } from './enumerate.js';
+import { buildCommentary } from './commentary.js';
 
 const GAME_TYPE = 'lotto';
 const REJECTED_EXAMPLE = [1, 2, 3, 4, 5, 6]; // the canonical "everybody plays it" coupon
@@ -135,6 +138,54 @@ const insertPredictionSql = `
     created_at = excluded.created_at
 `;
 
+/**
+ * Reads the surrounding facts the commentary (SPEC §8.4) is assembled from — the scheduled
+ * draw date, per-number `number_stat` rows for the six chosen numbers, and one example
+ * historical winning six the model did NOT pick (the most recent draw, the freshest one
+ * people replay). Pure reads; `buildCommentary` itself stays db-free and deterministic.
+ */
+function buildStatsContext(db, result, cfg) {
+  const numbers = result.numbers;
+  const placeholders = numbers.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT number, total_count, z_score, last_drawn_at, last_draw_number, current_gap
+       FROM number_stat WHERE game_type = ? AND number IN (${placeholders})`
+    )
+    .all(GAME_TYPE, ...numbers);
+  const numberStats = {};
+  for (const r of rows) {
+    numberStats[r.number] = {
+      totalCount: r.total_count,
+      zScore: r.z_score,
+      lastDrawnAt: r.last_drawn_at,
+      lastDrawNumber: r.last_draw_number,
+      currentGap: r.current_gap,
+    };
+  }
+
+  const last = db
+    .prepare(
+      `SELECT draw_number, drawn_at, n1, n2, n3, n4, n5, n6 FROM draw
+       WHERE game_type = ? ORDER BY draw_number DESC LIMIT 1`
+    )
+    .get(GAME_TYPE);
+  const skippedWinner = last
+    ? {
+        numbers: [last.n1, last.n2, last.n3, last.n4, last.n5, last.n6],
+        drawNumber: last.draw_number,
+        date: last.drawn_at,
+      }
+    : null;
+
+  return {
+    drawDate: warsawDateIso(nextDrawDate(new Date())),
+    numberStats,
+    skippedWinner,
+    chi2Alpha: cfg.chi2Alpha,
+  };
+}
+
 function persistPrediction(db, result, cfg) {
   db.prepare(insertPredictionSql).run({
     forDrawNumber: result.forDrawNumber,
@@ -145,14 +196,21 @@ function persistPrediction(db, result, cfg) {
     popularityScore: result.scores.popularity,
     totalScore: result.scores.total,
     alternatives: JSON.stringify(result.alternatives),
-    commentary: null, // Task 16 fills the "dlaczego te liczby" narrative
+    commentary: result.commentary,
     createdAt: Date.now(),
   });
 }
 
 function finalize(db, cfg, context, workerResult, wallStart) {
   const result = assembleResult(workerResult, context, cfg);
+  // Deterministic "dlaczego te liczby" narrative, assembled from the result + db facts and
+  // stored alongside the pick (SPEC §8.4). buildCommentary is pure; the only clock-dependent
+  // input is the scheduled draw date, which genuinely IS the next draw.
+  result.commentary = buildCommentary(result, buildStatsContext(db, result, cfg));
   persistPrediction(db, result, cfg);
+  // A written prediction invalidates the /api/typer cache, mirroring rebuildStats' choke
+  // point for the stats/draws caches (src/server/lib/rebuild-stats.js).
+  invalidateCache();
   result.timing = {
     enumerationMs: workerResult.elapsedMs,
     combosProcessed: workerResult.combosProcessed,
