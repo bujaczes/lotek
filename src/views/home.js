@@ -1,5 +1,5 @@
 import { el, clear } from '../dom.js';
-import { getLatestDraw, getBlanketStats, getRankingsStats, ApiError } from '../api.js';
+import { getLatestDraw, getBlanketStats, getRankingsStats, getTyper, ApiError } from '../api.js';
 import { createHero, startCountdown } from '../components/hero.js';
 import { createBlanket } from '../components/blanket.js';
 import { createRankings } from '../components/rankings.js';
@@ -35,14 +35,18 @@ export function createHomeView() {
         const hero = createHero(data);
         const blanketSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję blankiet…')]);
         const rankingsSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję rankingi…')]);
-        root.append(hero, blanketSlot, rankingsSlot, createTyperTeaser());
+        // Teaser starts in its honest not-yet-live state and is upgraded to the real pick
+        // once /api/typer resolves — its failure only costs the live numbers, never the page.
+        const teaserSlot = el('div', { class: 'home-slot' }, [createTyperTeaser()]);
+        root.append(hero, blanketSlot, rankingsSlot, teaserSlot);
         stopCountdown = startCountdown(hero);
 
-        // Blankiet + rankings are non-fatal: each fills its slot independently, so
+        // Blankiet + rankings + teaser are non-fatal: each fills its slot independently, so
         // one failing endpoint never blanks the whole page.
-        const [blanket, rankings] = await Promise.allSettled([
+        const [blanket, rankings, typer] = await Promise.allSettled([
           getBlanketStats({ signal: mine.signal }),
           getRankingsStats({ signal: mine.signal }),
+          getTyper({ signal: mine.signal }),
         ]);
         if (mine.signal.aborted || !root) return;
 
@@ -59,6 +63,11 @@ export function createHomeView() {
             ? createRankings(rankings.value)
             : sectionError('Nie udało się wczytać rankingów.')
         );
+
+        if (typer.status === 'fulfilled' && typer.value?.current) {
+          clear(teaserSlot);
+          teaserSlot.append(createTyperTeaser(typer.value.current));
+        }
       } catch (err) {
         if (mine.signal.aborted || !root) return;
         clear(root);

@@ -30,6 +30,13 @@ vi.mock('../src/api.js', () => {
     ),
     getBlanketStats: vi.fn(() => Promise.resolve(blanket)),
     getRankingsStats: vi.fn(() => Promise.resolve(rankings)),
+    getTyper: vi.fn(() =>
+      Promise.resolve({
+        current: null,
+        history: [],
+        nullHypothesis: { expectedPerCoupon: 36 / 49, evaluatedCount: 0, totalHits: 0, expectedHits: 0 },
+      })
+    ),
   };
 });
 

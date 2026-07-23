@@ -17,6 +17,7 @@ import {
 } from './stats.js';
 import { numberCareerHandler } from './numbers.js';
 import { wehikulHandler } from './wehikul.js';
+import { typerHandler } from './typer.js';
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 const DIST_DIR = join(MODULE_DIR, '..', '..', 'dist');
@@ -49,6 +50,8 @@ export function createApp(db) {
   app.get('/api/stats/carpet', carpetStatsHandler(db));
 
   app.get('/api/numbers/:n', numberCareerHandler(db));
+
+  app.get('/api/typer', typerHandler(db));
 
   app.post('/api/wehikul', wehikulHandler(db));
 
