@@ -96,6 +96,14 @@ describe('runPrediction — determinism (SPEC §8.3: same input -> bit-identical
     const inline = runPredictionSync(fixtureDb, cfg);
     expect(withoutTiming(inline)).toEqual(withoutTiming(viaWorker));
   }, LONG);
+
+  it('the stored commentary is byte-identical across two runs on the frozen fixture DB', async () => {
+    const a = await runPrediction(fixtureDb, cfg);
+    const b = await runPrediction(fixtureDb, cfg);
+    expect(typeof a.commentary).toBe('string');
+    expect(a.commentary.length).toBeGreaterThan(0);
+    expect(a.commentary).toBe(b.commentary);
+  }, LONG);
 });
 
 describe('runPrediction — enumeration completeness and wall-clock', () => {

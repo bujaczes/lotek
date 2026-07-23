@@ -9,11 +9,14 @@
 // than 1/13 983 816. The one and only probability statement is HONEST_FRAME_SENTENCE.
 
 const TOTAL_COMBOS_TEXT = '1 : 13 983 816'; // C(49,6) — the fixed jackpot odds for every coupon
-const BIRTHDAY_MAX = 31; // n <= 31 = a calendar day, over-picked
-const BIRTHDAY_MASS_SUM = 120; // sums below this are the birthday-coupon mass (lowSumThreshold)
-const AVG_SUM = 150; // mean draw sum (21..279)
+const BIRTHDAY_MAX = 31; // n <= 31 = a calendar day, over-picked (fixed domain constant, CONVENTIONS)
+const AVG_SUM = 150; // mean draw sum (21..279) (fixed domain constant, CONVENTIONS)
 const EXPECTED_HITS_PER_COUPON = 36 / 49; // 0.7347… — E[trafienia kuponu], the null-hypothesis reference
 const DEFAULT_CHI2_ALPHA = 0.05;
+// Last-resort fallback ONLY for callers that don't thread the real scoring threshold.
+// The production path (engine.buildStatsContext) always passes the loaded
+// config.popularity.penalties.lowSumThreshold, so the prose can't drift from scoring.
+const FALLBACK_LOW_SUM_THRESHOLD = 120;
 
 // The single, exact probability sentence. Exported so the honesty test can assert it is
 // present verbatim (and that no competing "higher chance" claim ever appears).
@@ -40,6 +43,15 @@ function plDec(n, digits) {
 // Signed decimal with a real minus (U+2212) so a z-score sets like the rest of the data.
 function plSigned(n, digits) {
   return `${n >= 0 ? '+' : '−'}${plDec(Math.abs(n), digits)}`;
+}
+
+// p-value rendering that NEVER collapses a real, small p to an apparent "p = 0,00": any
+// p below 0,01 is shown as a "< band" instead of a rounded-to-zero decimal. Two-decimal
+// only kicks in at p >= 0,01, where the rounding is faithful.
+function formatPValue(p) {
+  if (p < 0.001) return 'p < 0,001';
+  if (p < 0.01) return 'p < 0,01';
+  return `p = ${plDec(p, 2)}`;
 }
 
 function weekdayPl(iso) {
@@ -74,23 +86,26 @@ function header(prediction, statsCtx) {
 // decided. At/below alpha: the bias component co-decided; name the most-elevated number.
 function chi2Verdict(prediction, alpha) {
   const { p } = prediction.chi2;
-  const pText = p < 0.001 ? 'p < 0,001' : `p = ${plDec(p, 2)}`;
+  const pText = formatPValue(p);
   if (p > alpha) {
     return (
       `Test χ² na wygaszonym oknie ostatnich losowań nie wykrywa biasu maszyny (${pText}), ` +
       'więc o wyborze zdecydował model popularności — składnik detekcji biasu jest dziś praktycznie neutralny.'
     );
   }
-  const top = prediction.biasReport[0];
+  // Guard an empty biasReport: still report the omnibus deviation, just without naming a number.
+  const top = prediction.biasReport && prediction.biasReport[0];
+  const signalClause = top
+    ? ` Najsilniej wygaszony sygnał niesie liczba ${top.number} (z̃ = ${plSigned(top.z, 2)}).`
+    : '';
   return (
     `Test χ² sygnalizuje odchylenie od losowości (${pText} < ${plDec(alpha, 2)}): tym razem ` +
-    'współdecydował składnik detekcji biasu. Najsilniej wygaszony sygnał niesie liczba ' +
-    `${top.number} (z̃ = ${plSigned(top.z, 2)}) — infrastruktura wykryłaby wadliwy zestaw kul ` +
-    'pierwsza, ale mówimy wprost: to wciąż nie zmienia szansy na szóstkę.'
+    `współdecydował składnik detekcji biasu.${signalClause} Gdyby TS wprowadził wadliwy zestaw kul, ` +
+    'ten test wychwyciłby to jako pierwszy — ale mówimy wprost: to i tak nie zmienia szansy na szóstkę.'
   );
 }
 
-function popularityRationale(prediction) {
+function popularityRationale(prediction, lowSumThreshold) {
   const { numbers, scores, popularityReport } = prediction;
   const pen = popularityReport.winnerPenalties;
   const lowCount = numbers.filter((n) => n <= BIRTHDAY_MAX).length;
@@ -109,12 +124,14 @@ function popularityRationale(prediction) {
       ? `zawiera ciąg kolejnych liczb (${pen.runs.join(', ')})`
       : 'nie zawiera ciągu kolejnych liczb';
 
+  // Branch on the scoring model's OWN lowSum flag (pen.lowSum = sum < config threshold),
+  // and quote the same config threshold as the numeral, so prose and scoring can't diverge.
   let sumText;
-  if (sum < BIRTHDAY_MASS_SUM) {
-    sumText = `ma sumę ${sum} — poniżej granicy ${BIRTHDAY_MASS_SUM}, w masie kuponów granych datami`;
+  if (pen.lowSum) {
+    sumText = `ma sumę ${sum} — poniżej granicy ${lowSumThreshold}, w masie kuponów granych datami`;
   } else {
     const rel = sum >= AVG_SUM ? 'powyżej' : 'w okolicy';
-    sumText = `ma sumę ${sum} — ${rel} średniej ${AVG_SUM} i daleko od masy kuponów urodzinowych (suma < ${BIRTHDAY_MASS_SUM})`;
+    sumText = `ma sumę ${sum} — ${rel} średniej ${AVG_SUM} i daleko od masy kuponów urodzinowych (suma < ${lowSumThreshold})`;
   }
 
   // Pool-sharing conclusion grounded in the two popularity masses we actually have: the
@@ -196,18 +213,21 @@ function avoidedSection(prediction, statsCtx) {
  *   biasReport, popularityReport{winnerPenalties, rejectedExample}}.
  * `statsCtx` — {drawDate:'YYYY-MM-DD', numberStats:{[n]:{totalCount,lastDrawNumber,
  *   lastDrawnAt,zScore,currentGap}}, skippedWinner:{numbers,drawNumber,date}|null,
- *   chi2Alpha?:number}.
+ *   chi2Alpha?:number, lowSumThreshold?:number}. `lowSumThreshold` is the real scoring
+ *   threshold from config.popularity.penalties (threaded by the engine); it falls back to
+ *   FALLBACK_LOW_SUM_THRESHOLD only for callers that don't provide it.
  *
  * The blocks are joined with blank lines (paragraph breaks for the markdown renderer).
  * Every block is a pure function of the inputs — no Date.now(), no Math.random().
  */
 export function buildCommentary(prediction, statsCtx) {
   const alpha = statsCtx.chi2Alpha ?? DEFAULT_CHI2_ALPHA;
+  const lowSumThreshold = statsCtx.lowSumThreshold ?? FALLBACK_LOW_SUM_THRESHOLD;
   const blocks = [
     header(prediction, statsCtx),
     HONEST_FRAME_SENTENCE,
     chi2Verdict(prediction, alpha),
-    popularityRationale(prediction),
+    popularityRationale(prediction, lowSumThreshold),
     curiosity(prediction, statsCtx),
     ...perNumberSection(prediction, statsCtx),
     ...avoidedSection(prediction, statsCtx),
@@ -217,7 +237,7 @@ export function buildCommentary(prediction, statsCtx) {
 
 export const COMMENTARY_CONSTANTS = {
   TOTAL_COMBOS_TEXT,
-  BIRTHDAY_MASS_SUM,
+  FALLBACK_LOW_SUM_THRESHOLD,
   AVG_SUM,
   EXPECTED_HITS_PER_COUPON,
 };

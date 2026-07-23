@@ -183,6 +183,8 @@ function buildStatsContext(db, result, cfg) {
     numberStats,
     skippedWinner,
     chi2Alpha: cfg.chi2Alpha,
+    // The real scoring threshold — so the commentary's "(suma < N)" can't drift from it.
+    lowSumThreshold: cfg.popularity.penalties.lowSumThreshold,
   };
 }
 

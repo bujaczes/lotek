@@ -44,6 +44,7 @@ function basePrediction(overrides = {}) {
 const STATS = {
   drawDate: '2026-07-23', // a Thursday -> "czw"
   chi2Alpha: 0.05,
+  lowSumThreshold: 120, // the real config.popularity.penalties.lowSumThreshold, threaded in
   skippedWinner: { numbers: [4, 16, 23, 27, 29, 33], drawNumber: 7381, date: '2026-07-21' },
   numberStats: {
     5: { totalCount: 906, zScore: -0.31, lastDrawnAt: '2026-07-18', lastDrawNumber: 7380, currentGap: 1 },
@@ -128,6 +129,27 @@ describe('buildCommentary — χ² verdict branches', () => {
     const text = buildCommentary(basePrediction({ chi2: { stat: 200, df: 48, p: 1e-9 } }), STATS);
     expect(text).toContain('p < 0,001');
   });
+
+  it('a small p in [0,001, 0,01) never renders as the misleading "p = 0,00"', () => {
+    const biased = basePrediction({
+      chi2: { stat: 90, df: 48, p: 0.003 },
+      biasReport: [{ number: 17, decayed: 42, z: 3.14 }],
+    });
+    const text = buildCommentary(biased, STATS);
+    expect(text).not.toContain('0,00');
+    expect(text).toContain('p < 0,01');
+    expect(text).toContain('sygnalizuje odchylenie');
+  });
+
+  it('bias-found branch degrades gracefully on an empty biasReport (no throw, no named number)', () => {
+    const biased = basePrediction({ chi2: { stat: 90, df: 48, p: 0.002 }, biasReport: [] });
+    let text;
+    expect(() => {
+      text = buildCommentary(biased, STATS);
+    }).not.toThrow();
+    expect(text).toContain('sygnalizuje odchylenie');
+    expect(text).not.toContain('Najsilniej wygaszony sygnał');
+  });
 });
 
 describe('buildCommentary — popularity rationale & curiosity', () => {
@@ -163,5 +185,78 @@ describe('buildCommentary — per-number and "czego uniknęliśmy" sections', ()
     expect(text).toContain('Odrzuciliśmy 1-2-3-4-5-6 — najpopularniejszy kupon w Polsce');
     expect(text).toContain('#812');
     expect(text).toContain('Pominęliśmy też historyczną szóstkę 4-16-23-27-29-33 z losowania nr 7381 (21.07.2026)');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The honesty-adjacent branches: each variant of the popularity/curiosity prose must
+// render the expected clause AND stay honest (no win-probability overstatement).
+// ---------------------------------------------------------------------------
+function assertHonest(text) {
+  for (const phrase of FORBIDDEN) expect(text.toLowerCase()).not.toContain(phrase.toLowerCase());
+  const negated = (text.match(/nie jest bardziej prawdopodobny/g) || []).length;
+  const total = (text.match(/bardziej prawdopodobny/g) || []).length;
+  expect(total).toBe(negated);
+}
+
+// Build a prediction with a specific number set and penalty booleans.
+function predWith({ numbers = NUMBERS, penalties = {}, scores = {}, popularity = 6.34, rejPop = 45.2 } = {}) {
+  const p = basePrediction({ numbers });
+  p.scores = { bias: 0.12, popularity, total: 0.12 - popularity, ...scores };
+  p.popularityReport.winnerPenalties = {
+    runs: [], runFactor: 1, line4plus: false, allBirthday: false, allHigh: false,
+    lowSum: false, historicalWinner: false, sum: 191, multiplier: 1.0, ...penalties,
+  };
+  p.popularityReport.rejectedExample = { numbers: [1, 2, 3, 4, 5, 6], popularity: rejPop, rank: 812 };
+  return p;
+}
+
+const MINIMAL_STATS = { drawDate: '2026-07-23', chi2Alpha: 0.05, lowSumThreshold: 120, skippedWinner: null, numberStats: {} };
+
+describe('buildCommentary — popularity/curiosity branch coverage (honest in every variant)', () => {
+  it('all-high set (no number <= 31): "omija całą strefę urodzinową"', () => {
+    const text = buildCommentary(
+      predWith({ numbers: [33, 36, 38, 41, 43, 49], penalties: { allHigh: true, sum: 240 } }),
+      MINIMAL_STATS
+    );
+    expect(text).toContain('omija całą strefę urodzinową (żadna liczba ≤ 31)');
+    assertHonest(text);
+  });
+
+  it('a blankiet line present: "układa się w linię na blankiecie 7×7"', () => {
+    const text = buildCommentary(predWith({ penalties: { line4plus: true } }), MINIMAL_STATS);
+    expect(text).toContain('układa się w linię na blankiecie 7×7');
+    assertHonest(text);
+  });
+
+  it('a consecutive run present: "zawiera ciąg kolejnych liczb (3)"', () => {
+    const text = buildCommentary(predWith({ penalties: { runs: [3] } }), MINIMAL_STATS);
+    expect(text).toContain('zawiera ciąg kolejnych liczb (3)');
+    assertHonest(text);
+  });
+
+  it('sum below threshold uses the scoring flag and the threaded config threshold', () => {
+    const text = buildCommentary(
+      predWith({ numbers: [3, 8, 11, 17, 20, 25], penalties: { lowSum: true, sum: 84 } }),
+      { ...MINIMAL_STATS, lowSumThreshold: 90 }
+    );
+    expect(text).toContain('ma sumę 84 — poniżej granicy 90, w masie kuponów granych datami');
+    assertHonest(text);
+  });
+
+  it('zero winner popularity falls back to "wielokrotnie" (no divide-by-zero)', () => {
+    const text = buildCommentary(predWith({ popularity: 0 }), MINIMAL_STATS);
+    expect(text).toContain('wielokrotnie więcej');
+    assertHonest(text);
+  });
+
+  it('no meaningful gap among the numbers omits the ciekawostka block entirely', () => {
+    const stats = {
+      ...MINIMAL_STATS,
+      numberStats: Object.fromEntries(NUMBERS.map((n) => [n, { totalCount: 900, zScore: 0, lastDrawnAt: '2026-07-18', lastDrawNumber: 7380, currentGap: 0 }])),
+    };
+    const text = buildCommentary(predWith(), stats);
+    expect(text).not.toContain('Ciekawostka:');
+    assertHonest(text);
   });
 });
