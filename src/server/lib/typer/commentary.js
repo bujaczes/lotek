@@ -89,19 +89,22 @@ function chi2Verdict(prediction, alpha) {
   const pText = formatPValue(p);
   if (p > alpha) {
     return (
-      `Test χ² na wygaszonym oknie ostatnich losowań nie wykrywa biasu maszyny (${pText}), ` +
-      'więc o wyborze zdecydował model popularności — składnik detekcji biasu jest dziś praktycznie neutralny.'
+      `Sprawdziliśmy testem statystycznym (χ², „chi-kwadrat”), czy maszyna losująca nie faworyzuje ` +
+      `którychś liczb — czyli czy jakaś kula nie wypada częściej, niżby wynikało z czystego przypadku. ` +
+      `Wynik (${pText}) mówi „żadnych śladów”: gdyby maszyna była w pełni uczciwa, tak wyglądające dane ` +
+      `byłyby zupełnie normalne. Skoro więc maszyna gra czysto, o wyborze liczb zdecydował drugi ` +
+      `mechanizm — model popularności, opisany niżej.`
     );
   }
   // Guard an empty biasReport: still report the omnibus deviation, just without naming a number.
   const top = prediction.biasReport && prediction.biasReport[0];
-  const signalClause = top
-    ? ` Najsilniej wygaszony sygnał niesie liczba ${top.number} (z̃ = ${plSigned(top.z, 2)}).`
-    : '';
+  const signalClause = top ? ` Najmocniej odstaje przy tym liczba ${top.number}.` : '';
   return (
-    `Test χ² sygnalizuje odchylenie od losowości (${pText} < ${plDec(alpha, 2)}): tym razem ` +
-    `współdecydował składnik detekcji biasu.${signalClause} Gdyby TS wprowadził wadliwy zestaw kul, ` +
-    'ten test wychwyciłby to jako pierwszy — ale mówimy wprost: to i tak nie zmienia szansy na szóstkę.'
+    `Ten sam test statystyczny (χ², „chi-kwadrat”) tym razem coś wychwycił: dane odbiegają od czystej ` +
+    `losowości bardziej, niż zdarza się to przypadkiem (${pText}, poniżej progu 0,05 — czyli przy uczciwej ` +
+    `maszynie taki obraz byłby rzadszy niż raz na dwadzieścia razy). Dlatego współdecydował składnik szukający ` +
+    `„nierówności” maszyny.${signalClause} Gdyby TS wprowadził wadliwy zestaw kul, ten test wychwyciłby to jako ` +
+    `pierwszy — ale mówimy wprost: to i tak nie zmienia szansy tego kuponu na szóstkę.`
   );
 }
 
@@ -180,7 +183,10 @@ function perNumberSection(prediction, statsCtx) {
     const z = s && s.zScore != null ? `z-score ${plSigned(s.zScore, 2)}` : 'z-score —';
     items.push(`- **${n}** — wypadła ${total} w historii, ${last}; ${z}.`);
   }
-  return ['### Liczba po liczbie', items.join('\n')];
+  const intro =
+    'Przy każdej liczbie podajemy z-score — miarę, jak jej częstość odbiega od średniej: 0 to idealna ' +
+    'średnia, a wszystko od −3 do +3 to zwykły szum. Wysoki z-score nie czyni liczby „lepszą” na następne losowanie.';
+  return ['### Liczba po liczbie', intro, items.join('\n')];
 }
 
 // Returns [headingBlock, paragraph, paragraph?] — each paragraph its own block.

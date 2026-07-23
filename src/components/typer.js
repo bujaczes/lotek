@@ -136,8 +136,10 @@ export function nullHypothesisSection(nullHypothesis) {
     el('h2', { class: 'typer-section__title' }, 'Hipoteza zerowa: „Sprawdzam!”'),
     el('p', { class: 'typer-section__lead' },
       'Piszemy to z góry: model NIE pobije losowości w liczbie trafień — i nie powinien. ' +
-        'Jego przewaga siedzi w EV | wygrana (oczekiwanej wypłacie, jeśli szóstka padnie), ' +
-        'a tego nie zmierzymy bez wygranej. To jest uczciwe i to jest fajne.'),
+        'Jego przewaga nie leży w szansie na trafienie (ta jest identyczna dla każdego kuponu), ' +
+        'lecz w wyższej oczekiwanej wypłacie w razie wygranej — w skrócie EV, „wartość oczekiwana”: ' +
+        'mniej graczy typuje taki zestaw, więc pulę dzieliłoby się na mniej osób. A tego bez realnej ' +
+        'wygranej nie zmierzymy. To jest uczciwe i to jest fajne.'),
     el('div', { class: 'typer-null__tiles' }, tiles),
   ]);
 }

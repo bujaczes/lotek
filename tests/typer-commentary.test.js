@@ -105,12 +105,12 @@ describe('buildCommentary — header', () => {
 });
 
 describe('buildCommentary — χ² verdict branches', () => {
-  it('no-bias branch (p > alpha): "nie wykrywa biasu maszyny" and the p-value', () => {
+  it('no-bias branch (p > alpha): explains the test found no machine bias, with the p-value', () => {
     const text = buildCommentary(basePrediction({ chi2: { stat: 40.1, df: 48, p: 0.78 } }), STATS);
-    expect(text).toContain('nie wykrywa biasu maszyny');
+    expect(text).toContain('maszyna gra czysto');
     expect(text).toContain('p = 0,78');
-    expect(text).toContain('zdecydował model popularności');
-    expect(text).not.toContain('sygnalizuje odchylenie');
+    expect(text).toContain('model popularności');
+    expect(text).not.toContain('coś wychwycił');
   });
 
   it('bias-found branch (p <= alpha): flags the deviation and names the top number', () => {
@@ -119,10 +119,9 @@ describe('buildCommentary — χ² verdict branches', () => {
       biasReport: [{ number: 17, decayed: 42, z: 3.14 }],
     });
     const text = buildCommentary(biased, STATS);
-    expect(text).toContain('sygnalizuje odchylenie');
+    expect(text).toContain('coś wychwycił');
     expect(text).toContain('liczba 17');
-    expect(text).toContain('z̃ = +3,14');
-    expect(text).not.toContain('nie wykrywa biasu maszyny');
+    expect(text).not.toContain('maszyna gra czysto');
   });
 
   it('very small p is rendered as "p < 0,001"', () => {
@@ -138,7 +137,7 @@ describe('buildCommentary — χ² verdict branches', () => {
     const text = buildCommentary(biased, STATS);
     expect(text).not.toContain('0,00');
     expect(text).toContain('p < 0,01');
-    expect(text).toContain('sygnalizuje odchylenie');
+    expect(text).toContain('coś wychwycił');
   });
 
   it('bias-found branch degrades gracefully on an empty biasReport (no throw, no named number)', () => {
@@ -147,8 +146,8 @@ describe('buildCommentary — χ² verdict branches', () => {
     expect(() => {
       text = buildCommentary(biased, STATS);
     }).not.toThrow();
-    expect(text).toContain('sygnalizuje odchylenie');
-    expect(text).not.toContain('Najsilniej wygaszony sygnał');
+    expect(text).toContain('coś wychwycił');
+    expect(text).not.toContain('odstaje przy tym liczba');
   });
 });
 

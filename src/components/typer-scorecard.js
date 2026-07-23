@@ -29,9 +29,13 @@ const BAND_FILL = 'rgba(62, 108, 142, 0.14)';
 
 const NULL_HYPOTHESIS =
   'Hipoteza zerowa jest prosta: model NIE pobije losowości w liczbie trafień — i nie ' +
-  'powinien. Jego przewaga siedzi w EV | wygrana (oczekiwanej wypłacie, jeśli szóstka ' +
-  'padnie), a tego nie zmierzymy bez wygranej. Ten wykres tylko sprawdza, czy trafienia ' +
-  'trzymają się teorii — powinny siedzieć w paśmie ±2σ wokół 0,7347 na kupon.';
+  'powinien. Jego przewaga nie leży w szansie na trafienie (ta jest identyczna dla każdego ' +
+  'kuponu), lecz w wyższej oczekiwanej wypłacie, gdyby szóstka padła — w skrócie EV, „wartość ' +
+  'oczekiwana”: mniej graczy typuje taki zestaw, więc ewentualną pulę dzieliłoby się na mniej ' +
+  'osób. A tego bez realnej wygranej nie zmierzymy. Wykres sprawdza więc tylko jedno: czy liczba ' +
+  'trafień Typera zachowuje się tak, jak nakazuje sam przypadek. Przeciętny kupon trafia 0,7347 ' +
+  'z 6 wylosowanych liczb (to po prostu 36/49), a szara wstęga to zakres, w którym wynik powinien ' +
+  'się mieścić przy zwykłej losowości.';
 
 const HIT_LABELS = { 0: '0', 1: '1', 2: '2', 3: '3+' };
 

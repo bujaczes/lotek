@@ -2144,10 +2144,13 @@ a.mini-blanket__cell:hover {
 .picker__actions {
   display: flex;
   gap: var(--sp-2);
-  align-items: center;
+  align-items: stretch;
 }
-.picker__cta {
-  align-self: center;
+/* Match both action buttons to the primary CTA's size so "Wyczyść" isn't visibly
+   smaller than "Sprawdź swój zestaw" (base .btn is smaller than .btn--primary). */
+.picker__actions .btn {
+  padding: 0.55rem 1.2rem;
+  font-size: var(--step-0);
 }
 .wehikul-results {
   display: flex;

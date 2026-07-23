@@ -237,7 +237,9 @@ function zscoreFact(latest, best) {
     text:
       `Najbardziej wyróżniająca się liczba losowania nr ${latest.drawNumber} to ${best.number}: ` +
       `w historii padła ${best.count} razy, ${moreOrLess} niż przeciętnie (z-score ${formatZ(best.z)}). ` +
-      `Wciąż mieści się to w granicach czystego losowego szumu.`,
+      `Z-score mówi, o ile częstość odbiega od średniej, liczone w „krokach”: wszystko między −3 a +3 ` +
+      `to u loterii zwykłe wahanie przypadku. To nie znaczy, że liczba ${best.number} jest „gorąca” — ` +
+      `w następnym losowaniu ma dokładnie takie same szanse jak każda inna.`,
   };
 }
 

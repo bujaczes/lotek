@@ -200,7 +200,7 @@ describe('createTyperView', () => {
     expect(section).not.toBeNull();
     // honest null-hypothesis sentence, no probability overstatement
     expect(section.textContent).toContain('NIE pobije losowości');
-    expect(section.textContent).toContain('EV | wygrana');
+    expect(section.textContent).toContain('wartość oczekiwana');
     // verdict inside the band
     const verdict = section.querySelector('.typer-scorecard__verdict');
     expect(verdict.getAttribute('data-status')).toBe('within');
