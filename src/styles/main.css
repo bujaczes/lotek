@@ -228,6 +228,14 @@ button {
   border: 1.5px solid var(--color-ink);
   border-radius: 999px;
 }
+.site-footer__brand {
+  margin-top: 0.25rem;
+  color: var(--ink-40);
+}
+.site-footer__name {
+  color: var(--color-ink);
+  font-weight: 500;
+}
 
 /* ---- shared bits ------------------------------------------------------- */
 .eyebrow {
@@ -1011,6 +1019,48 @@ button {
 .link-back:hover {
   color: var(--color-ink);
   border-bottom-color: var(--color-ink);
+}
+
+/* ---- FAQ --------------------------------------------------------------- */
+.view--faq {
+  max-width: 46rem;
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 4rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.faq__title {
+  font-size: var(--step-4);
+}
+.faq__lead {
+  font-size: var(--step-1);
+  color: var(--ink-70);
+  max-width: 60ch;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-2);
+}
+.faq-item {
+  padding-block: var(--sp-4);
+  border-top: 1px solid var(--color-line);
+}
+.faq-item:last-child {
+  border-bottom: 1px solid var(--color-line);
+}
+.faq-item__q {
+  font-size: var(--step-1);
+  margin-bottom: 0.6rem;
+}
+.faq-item__a {
+  color: var(--ink-70);
+  max-width: 68ch;
+  line-height: 1.65;
+}
+.faq-item__a + .faq-item__a {
+  margin-top: 0.7rem;
 }
 
 /* ============================================================================

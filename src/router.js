@@ -11,6 +11,7 @@ export const routes = [
   { name: 'draw', pattern: '/losowanie/:nr' },
   { name: 'typer', pattern: '/typer' },
   { name: 'wehikul', pattern: '/wehikul' },
+  { name: 'faq', pattern: '/faq' },
 ];
 
 function normalizePath(pathname) {

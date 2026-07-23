@@ -50,6 +50,11 @@ const ROUTE_META = {
     description:
       'Wpisz swój zestaw sześciu liczb i sprawdź, ile razy trafiłby 3/4/5/6 od 1957 roku oraz jaki byłby hipotetyczny bilans.',
   }),
+  faq: () => ({
+    title: 'FAQ',
+    description:
+      'Uczciwe, proste wyjaśnienia pojęć LOTKA: z-score, test χ², wartość oczekiwana (EV), pasmo ±2σ i dlaczego żaden zestaw nie ma większej szansy na szóstkę.',
+  }),
   notfound: () => ({
     title: 'Nie znaleziono',
     description: DEFAULT_DESCRIPTION,

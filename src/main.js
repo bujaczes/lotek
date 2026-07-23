@@ -8,6 +8,7 @@ import { createNumberView } from './views/number.js';
 import { createDrawView } from './views/draw.js';
 import { createTyperView } from './views/typer.js';
 import { createWehikulView } from './views/wehikul.js';
+import { createFaqView } from './views/faq.js';
 import { createNotFoundView } from './views/notfound.js';
 
 const viewFactories = {
@@ -17,6 +18,7 @@ const viewFactories = {
   draw: createDrawView,
   typer: createTyperView,
   wehikul: createWehikulView,
+  faq: createFaqView,
   notfound: createNotFoundView,
 };
 
@@ -24,6 +26,7 @@ const NAV = [
   { href: '/statystyki', label: 'Statystyki', route: 'stats' },
   { href: '/typer', label: 'Typer', route: 'typer' },
   { href: '/wehikul', label: 'Wehikuł', route: 'wehikul' },
+  { href: '/faq', label: 'FAQ', route: 'faq' },
 ];
 
 function buildShell() {
@@ -45,7 +48,6 @@ function buildShell() {
 
   const footer = el('footer', { class: 'site-footer' }, [
     el('div', { class: 'site-footer__inner' }, [
-      el('p', { class: 'site-footer__line' }, 'Projekt hobbystyczny do analizy publicznych danych o losowaniach.'),
       el('p', { class: 'site-footer__line site-footer__warn' }, [
         el('span', { class: 'badge-18' }, '18+'),
         'Hazard może uzależniać. Graj odpowiedzialnie.',
@@ -55,14 +57,9 @@ function buildShell() {
         el('a', { href: 'https://www.lotto.pl', target: '_blank', rel: 'noopener' }, 'lotto.pl'),
         '.',
       ]),
-      el('p', { class: 'site-footer__line site-footer__muted' }, [
-        'Kod źródłowy: ',
-        el(
-          'a',
-          { href: 'https://github.com/bujaczes/lotek', target: '_blank', rel: 'noopener' },
-          'github.com/bujaczes/lotek'
-        ),
-        '.',
+      el('p', { class: 'site-footer__line site-footer__brand' }, [
+        el('span', { class: 'site-footer__name' }, 'rockingchair.dev'),
+        ' © 2026',
       ]),
     ]),
   ]);
