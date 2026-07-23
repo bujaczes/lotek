@@ -82,3 +82,6 @@ export const getRecordsStats = (opts) => apiGet('/stats/records', opts);
 // --- /typer --------------------------------------------------------------
 // { current: { prediction, commentary } | null, history: [...], nullHypothesis }.
 export const getTyper = (opts) => apiGet('/typer', opts);
+// "Sprawdzam!" self-scorecard over evaluated predictions:
+// { perPrediction, cumulative, distribution, balance, variance, expectedPerCoupon, evaluatedCount }.
+export const getTyperScorecard = (opts) => apiGet('/typer/scorecard', opts);

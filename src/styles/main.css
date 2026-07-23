@@ -2640,6 +2640,60 @@ a.mini-blanket__cell:hover {
   max-width: 52ch;
 }
 
+/* "Sprawdzam!" self-scorecard */
+.typer-scorecard {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.typer-scorecard__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.typer-scorecard__verdict {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--ink-70);
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--ink-40);
+  background: var(--surface-sunk);
+}
+.typer-scorecard__verdict[data-status='within'] {
+  border-left-color: var(--color-success);
+}
+.typer-scorecard__verdict[data-status='above'] {
+  border-left-color: var(--color-accent);
+}
+.typer-scorecard__verdict[data-status='below'] {
+  border-left-color: var(--color-hot);
+}
+.typer-scorecard__panel {
+  gap: var(--sp-3);
+}
+.typer-scorecard__balance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.typer-scorecard__net--pos {
+  color: var(--color-success);
+}
+.typer-scorecard__net--neg {
+  color: var(--color-hot);
+}
+.typer-scorecard__empty {
+  padding: var(--sp-3) 0;
+}
+.typer-scorecard__empty-lead {
+  color: var(--ink-70);
+  max-width: 60ch;
+}
+
 /* teaser: live variant additions */
 .typer-teaser__status--live {
   color: var(--color-success);

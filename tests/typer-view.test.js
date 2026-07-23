@@ -3,6 +3,19 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const state = vi.hoisted(() => ({ mode: 'ok' }));
 
+// The chart library is behind a dynamic import in the view; mocking the module exercises
+// the scorecard section without a canvas and lets us assert dispose-on-unmount.
+const chart = vi.hoisted(() => ({ created: [], disposed: 0, explode: false }));
+vi.mock('../src/charts/echarts.js', () => ({
+  createChart: (container, option) => {
+    if (chart.explode) throw new Error('no canvas');
+    chart.created.push({ container, option });
+    return () => {
+      chart.disposed += 1;
+    };
+  },
+}));
+
 const CURRENT = {
   prediction: {
     forDrawNumber: 7382,
@@ -49,14 +62,58 @@ const PAYLOAD = {
   nullHypothesis: { expectedPerCoupon: 36 / 49, evaluatedCount: 1, totalHits: 3, expectedHits: 0.7347 },
 };
 
+// Three evaluated coupons; cumulative hits land inside the ±2σ band at k=3 -> "w paśmie
+// szumu" verdict. One coupon (nr 7379) is a IV-stopień win, one uses numbers >= 33.
+const SCORECARD = {
+  evaluatedCount: 3,
+  variance: 0.5775718450645565,
+  expectedPerCoupon: 36 / 49,
+  perPrediction: [
+    { forDrawNumber: 7379, date: '2026-07-16', numbers: [1, 2, 3, 4, 5, 6], hits: 3, prizeTier: 4 },
+    { forDrawNumber: 7380, date: '2026-07-18', numbers: [33, 34, 35, 44, 45, 49], hits: 0, prizeTier: null },
+    { forDrawNumber: 7381, date: '2026-07-21', numbers: [1, 2, 3, 4, 5, 6], hits: 0, prizeTier: null },
+  ],
+  cumulative: [
+    { k: 1, forDrawNumber: 7379, date: '2026-07-16', cumHits: 3, expected: 0.7347, sigmaBand: 1.52 },
+    { k: 2, forDrawNumber: 7380, date: '2026-07-18', cumHits: 3, expected: 1.4694, sigmaBand: 2.15 },
+    { k: 3, forDrawNumber: 7381, date: '2026-07-21', cumHits: 3, expected: 2.2041, sigmaBand: 2.63 },
+  ],
+  distribution: {
+    observed: { 0: 2, 1: 0, 2: 0, 3: 1, 4: 0, 5: 0, 6: 0 },
+    expected: { 0: 1.3079, 1: 1.2391, 2: 0.3971, 3: 0.05295, 4: 0.002906, 5: 0.0000553, 6: 0.000000214 },
+  },
+  balance: { cost: 9, winnings: 24, net: 15 },
+};
+const SCORECARD_EMPTY = {
+  evaluatedCount: 0,
+  variance: 0.5775718450645565,
+  expectedPerCoupon: 36 / 49,
+  perPrediction: [],
+  cumulative: [],
+  distribution: {
+    observed: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    expected: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+  },
+  balance: { cost: 0, winnings: 0, net: 0 },
+};
+
 vi.mock('../src/api.js', () => ({
   ApiError: class ApiError extends Error {},
   getTyper: () => {
     if (state.mode === 'error') return Promise.reject(new Error('boom'));
     if (state.mode === 'empty') {
-      return Promise.resolve({ current: null, history: [], nullHypothesis: { expectedPerCoupon: 6 / 49, evaluatedCount: 0, totalHits: 0, expectedHits: 0 } });
+      return Promise.resolve({
+        current: null,
+        history: [],
+        nullHypothesis: { expectedPerCoupon: 36 / 49, evaluatedCount: 0, totalHits: 0, expectedHits: 0 },
+      });
     }
     return Promise.resolve(PAYLOAD);
+  },
+  getTyperScorecard: () => {
+    if (state.mode === 'scorecard-error') return Promise.reject(new Error('boom'));
+    if (state.mode === 'empty') return Promise.resolve(SCORECARD_EMPTY);
+    return Promise.resolve(SCORECARD);
   },
 }));
 
@@ -71,6 +128,9 @@ function mountView() {
 
 beforeEach(() => {
   state.mode = 'ok';
+  chart.created.length = 0;
+  chart.disposed = 0;
+  chart.explode = false;
 });
 
 describe('createTyperView', () => {
@@ -133,6 +193,68 @@ describe('createTyperView', () => {
     expect(items[0].textContent).toContain('IV stopień');
   });
 
+  it('renders the "Sprawdzam!" scorecard: two charts, honest copy, verdict, balance', async () => {
+    const { container, done } = mountView();
+    await done;
+    const section = container.querySelector('.typer-scorecard');
+    expect(section).not.toBeNull();
+    // honest null-hypothesis sentence, no probability overstatement
+    expect(section.textContent).toContain('NIE pobije losowości');
+    expect(section.textContent).toContain('EV | wygrana');
+    // verdict inside the band
+    const verdict = section.querySelector('.typer-scorecard__verdict');
+    expect(verdict.getAttribute('data-status')).toBe('within');
+    expect(verdict.textContent.toLowerCase()).toContain('w paśmie szumu');
+    // two charts inited (cumulative + distribution)
+    expect(chart.created).toHaveLength(2);
+    expect(chart.created[0].option.series.some((s) => s.name === 'Pasmo ±2σ')).toBe(true);
+    expect(chart.created[1].option.series[0].type).toBe('bar');
+    // documents the frozen Var value
+    expect(section.textContent).toContain('0,5776');
+    // balance tiles: cost, winnings, net
+    const tiles = section.querySelectorAll('.typer-scorecard__balance .typer-null__tile');
+    expect(tiles).toHaveLength(3);
+    expect(section.querySelector('.typer-scorecard__net').textContent).toContain('+');
+    // relief channel: table views for the amber-fill charts
+    expect(section.querySelectorAll('.chart-table').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows the scorecard empty state (no charts) when nothing is evaluated yet', async () => {
+    state.mode = 'empty';
+    const { container, done } = mountView();
+    await done;
+    expect(container.querySelector('.typer-empty')).not.toBeNull();
+    expect(container.querySelector('.typer-hero')).toBeNull();
+    const section = container.querySelector('.typer-scorecard');
+    expect(section).not.toBeNull();
+    expect(section.querySelector('.typer-scorecard__empty')).not.toBeNull();
+    // still states the null hypothesis, honestly, even with no data
+    expect(section.textContent).toContain('NIE pobije losowości');
+    // no charts drawn on an empty scorecard
+    expect(chart.created).toHaveLength(0);
+  });
+
+  it('keeps the page alive with a section error when the scorecard endpoint fails', async () => {
+    state.mode = 'scorecard-error';
+    const { container, done } = mountView();
+    await done;
+    // the rest of the page rendered fine
+    expect(container.querySelector('.typer-hero')).not.toBeNull();
+    // scorecard degraded to a section error, not a blank page
+    expect(container.querySelector('.typer-scorecard-slot .section-error')).not.toBeNull();
+    expect(chart.created).toHaveLength(0);
+  });
+
+  it('keeps the scorecard copy, tables and balance when the chart refuses to init', async () => {
+    chart.explode = true;
+    const { container, done } = mountView();
+    await done;
+    const section = container.querySelector('.typer-scorecard');
+    expect(section).not.toBeNull();
+    expect(section.querySelector('.typer-scorecard__balance')).not.toBeNull();
+    expect(section.querySelectorAll('.chart-table').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('shows an empty state when no prediction has been computed yet', async () => {
     state.mode = 'empty';
     const { container, done } = mountView();
@@ -148,10 +270,11 @@ describe('createTyperView', () => {
     expect(container.querySelector('.error')).not.toBeNull();
   });
 
-  it('detaches the view on unmount', async () => {
+  it('disposes the scorecard charts and detaches the view on unmount', async () => {
     const { view, container, done } = mountView();
     await done;
     view.unmount();
+    expect(chart.disposed).toBe(2);
     expect(container.querySelector('.view--typer')).toBeNull();
   });
 });
