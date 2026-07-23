@@ -523,6 +523,21 @@ button {
   padding: var(--sp-4);
   color: var(--ink-55);
 }
+
+/* "Ciekawostka dnia" — a quiet accent card just under the hero. A single amber hairline
+   on the leading edge ties it to the ball palette without shouting. */
+.fact-card {
+  padding: var(--sp-4);
+  border-left: 3px solid var(--color-accent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.fact-card__text {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--ink-70);
+}
 .section__title {
   font-family: var(--font-display);
   font-weight: 700;

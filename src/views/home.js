@@ -1,9 +1,10 @@
 import { el, clear } from '../dom.js';
-import { getLatestDraw, getBlanketStats, getRankingsStats, getTyper, ApiError } from '../api.js';
+import { getLatestDraw, getBlanketStats, getRankingsStats, getTyper, getFact, ApiError } from '../api.js';
 import { createHero, startCountdown } from '../components/hero.js';
 import { createBlanket } from '../components/blanket.js';
 import { createRankings } from '../components/rankings.js';
 import { createTyperTeaser } from '../components/typer-teaser.js';
+import { createFactCard } from '../components/fact-card.js';
 
 function sectionError(message) {
   return el('section', { class: 'section-error card' }, [
@@ -33,22 +34,31 @@ export function createHomeView() {
         clear(root);
 
         const hero = createHero(data);
+        // "Ciekawostka dnia" sits directly under the hero (brief: "near the hero"). Its slot
+        // starts empty and stays empty if the fact fails or is null — it never blocks render.
+        const factSlot = el('div', { class: 'home-slot' });
         const blanketSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję blankiet…')]);
         const rankingsSlot = el('div', { class: 'home-slot' }, [el('p', { class: 'loading' }, 'Wczytuję rankingi…')]);
         // Teaser starts in its honest not-yet-live state and is upgraded to the real pick
         // once /api/typer resolves — its failure only costs the live numbers, never the page.
         const teaserSlot = el('div', { class: 'home-slot' }, [createTyperTeaser()]);
-        root.append(hero, blanketSlot, rankingsSlot, teaserSlot);
+        root.append(hero, factSlot, blanketSlot, rankingsSlot, teaserSlot);
         stopCountdown = startCountdown(hero);
 
-        // Blankiet + rankings + teaser are non-fatal: each fills its slot independently, so
-        // one failing endpoint never blanks the whole page.
-        const [blanket, rankings, typer] = await Promise.allSettled([
+        // Fact + blankiet + rankings + teaser are non-fatal: each fills its slot
+        // independently, so one failing endpoint never blanks the whole page.
+        const [fact, blanket, rankings, typer] = await Promise.allSettled([
+          getFact({ signal: mine.signal }),
           getBlanketStats({ signal: mine.signal }),
           getRankingsStats({ signal: mine.signal }),
           getTyper({ signal: mine.signal }),
         ]);
         if (mine.signal.aborted || !root) return;
+
+        if (fact.status === 'fulfilled' && fact.value?.fact) {
+          const card = createFactCard(fact.value.fact);
+          if (card) factSlot.append(card);
+        }
 
         clear(blanketSlot);
         blanketSlot.append(

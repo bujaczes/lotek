@@ -60,6 +60,8 @@ export const getNumberCareer = (n, opts) => apiGet(`/numbers/${n}`, opts);
 export const getBlanketStats = (opts) => apiGet('/stats/blanket', opts);
 // { hot, cold } x { all, last100, currentYear } x 10 entries { number, count, zScore }.
 export const getRankingsStats = (opts) => apiGet('/stats/rankings', opts);
+// { fact: { type, text } | null } — the "ciekawostka dnia" for the latest draw.
+export const getFact = (opts) => apiGet('/facts/latest', opts);
 
 // --- /statystyki ---------------------------------------------------------
 // { histogram, theoretical, lastSum, percentile, sector }.
