@@ -23,6 +23,7 @@ const viewFactories = {
 };
 
 const NAV = [
+  { href: '/losowanie', label: 'Losowania', route: 'draw' },
   { href: '/statystyki', label: 'Statystyki', route: 'stats' },
   { href: '/typer', label: 'Typer', route: 'typer' },
   { href: '/wehikul', label: 'Wehikuł', route: 'wehikul' },
