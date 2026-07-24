@@ -1849,7 +1849,9 @@ a.mini-blanket__cell:hover {
 .field__input {
   font: inherit;
   font-size: var(--step--1);
-  padding: 0.4rem 0.65rem;
+  height: 2.4rem;
+  box-sizing: border-box;
+  padding: 0 0.65rem;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -1879,28 +1881,46 @@ a.mini-blanket__cell:hover {
   color: var(--color-bg);
 }
 .contains {
-  margin-top: 1.35rem; /* lines the summary up with the inputs, under their labels */
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  padding: 0.35rem 0.65rem;
+  position: relative; /* anchors the floating picker panel */
 }
-.contains__summary {
-  display: flex;
-  align-items: baseline;
+.contains__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
   cursor: pointer;
-  font-size: var(--step--1);
+  text-align: left;
+}
+.contains__chevron {
+  color: var(--ink-40);
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+.contains.is-open .contains__chevron {
+  transform: rotate(180deg);
+}
+.contains__panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 34px -16px rgba(25, 26, 46, 0.32);
+}
+/* Author display:flex above ties the UA [hidden] rule on specificity and would win by
+   order, keeping the popover permanently visible — this raises specificity so it hides. */
+.contains__panel[hidden] {
+  display: none;
 }
 .contains__count {
   color: var(--ink-40);
   font-size: 0.75rem;
-}
-.contains__body {
-  padding-top: var(--sp-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
 }
 .contains__hint {
   font-size: var(--step--1);

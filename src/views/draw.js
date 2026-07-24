@@ -139,6 +139,7 @@ export function createDrawView() {
       if (listController) listController.abort();
       controller = null;
       listController = null;
+      if (archive) archive.destroy();
       archive = null;
       if (root) root.remove();
       root = null;

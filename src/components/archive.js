@@ -133,16 +133,57 @@ export function createArchive({ state, onChange, collapsed = false }) {
   }
   paintContainsCount();
 
-  const containsField = el('details', { class: 'contains', open: current.contains.length > 0 }, [
-    el('summary', { class: 'contains__summary' }, [
-      el('span', {}, 'Zawiera liczby'),
-      containsCount,
-    ]),
-    el('div', { class: 'contains__body' }, [
+  const containsToggle = el(
+    'button',
+    {
+      class: 'field__input contains__toggle',
+      type: 'button',
+      'aria-haspopup': 'dialog',
+      'aria-expanded': 'false',
+      onClick: () => setContainsOpen(!containsOpen),
+    },
+    [containsCount, el('span', { class: 'contains__chevron', 'aria-hidden': 'true' }, '▾')]
+  );
+  const containsPanel = el(
+    'div',
+    { class: 'contains__panel', role: 'dialog', 'aria-label': 'Wybierz liczby, które ma zawierać losowanie', hidden: true },
+    [
       picker.node,
       el('p', { class: 'contains__hint' }, 'Klikaj pola blankietu — pokażemy tylko losowania, w których padły wszystkie zaznaczone liczby.'),
-    ]),
+    ]
+  );
+  const containsField = el('div', { class: 'field contains' }, [
+    el('span', { class: 'field__label' }, 'Zawiera liczby'),
+    containsToggle,
+    containsPanel,
   ]);
+
+  // The picker floats over the content in a popover instead of pushing the list
+  // down. Document listeners exist only while it's open (and destroy() clears them).
+  let containsOpen = false;
+  const onDocPointer = (e) => {
+    if (!containsField.contains(e.target)) setContainsOpen(false);
+  };
+  const onKeydown = (e) => {
+    if (e.key === 'Escape') {
+      setContainsOpen(false);
+      containsToggle.focus();
+    }
+  };
+  function setContainsOpen(open) {
+    if (open === containsOpen) return;
+    containsOpen = open;
+    containsToggle.setAttribute('aria-expanded', String(open));
+    containsPanel.hidden = !open;
+    containsField.classList.toggle('is-open', open);
+    if (open) {
+      document.addEventListener('pointerdown', onDocPointer, true);
+      document.addEventListener('keydown', onKeydown);
+    } else {
+      document.removeEventListener('pointerdown', onDocPointer, true);
+      document.removeEventListener('keydown', onKeydown);
+    }
+  }
 
   const resetButton = el(
     'button',
@@ -200,6 +241,9 @@ export function createArchive({ state, onChange, collapsed = false }) {
 
   return {
     node,
+    destroy() {
+      setContainsOpen(false);
+    },
     setYears(years) {
       paintYears(years);
     },
