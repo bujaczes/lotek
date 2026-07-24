@@ -77,11 +77,10 @@ function buildTooltip(stage) {
       const ballCx = f0.left - s0.left + f0.width / 2; // ball center within the stage
       const top = f0.top - s0.top;
 
-      // 1) Place the box centered over the ball, caret centered.
+      // 1) Place the box centered above the ball, caret centered and pointing down.
       tip.style.left = `${ballCx}px`;
       tip.style.top = `${top}px`;
       tip.style.setProperty('--caret-x', '50%');
-      tip.classList.toggle('is-below', top < 76);
 
       // 2) Measure the *rendered* box and slide it back inside the stage so the ~14
       // first/last-column balls never overflow (worst on a narrow viewport). Working

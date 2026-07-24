@@ -699,9 +699,6 @@ a.site-footer__name:hover {
 .blanket-tip[hidden] {
   display: none;
 }
-.blanket-tip.is-below {
-  transform: translate(-50%, 14px);
-}
 .blanket-tip::after {
   content: '';
   position: absolute;
@@ -711,10 +708,6 @@ a.site-footer__name:hover {
   height: 10px;
   background: var(--color-ink);
   transform: translateX(-50%) rotate(45deg);
-}
-.blanket-tip.is-below::after {
-  bottom: auto;
-  top: -5px;
 }
 .blanket-tip__num {
   font-size: 1.15rem;
