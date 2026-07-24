@@ -86,26 +86,28 @@ function buildRetrospectiveFields(db, { targetRow, cutoffDrawNumber }) {
   return { verdict, chips, nearestNeighbor };
 }
 
-export function latestDrawHandler(db) {
+export function latestDrawHandler(db, { now = () => new Date() } = {}) {
   return (req, res) => {
-    const payload = cached('draws:latest', () => {
+    // The expensive part (draw + retrospective fields) only changes when a new
+    // draw lands, so it stays cached and is invalidated on import/rebuild.
+    const base = cached('draws:latest', () => {
       const target = db
         .prepare('SELECT * FROM draw WHERE game_type = ? ORDER BY draw_number DESC LIMIT 1')
         .get(GAME_TYPE);
       if (!target) return null;
 
       const retro = buildRetrospectiveFields(db, { targetRow: target, cutoffDrawNumber: target.draw_number });
-      const next = nextDrawDate(new Date());
-
-      return {
-        ...toDrawView(target),
-        ...retro,
-        nextDraw: { date: next.toISOString(), drawNumber: target.draw_number + 1 },
-      };
+      return { ...toDrawView(target), ...retro };
     });
 
-    if (!payload) return res.status(404).json({ error: 'no draws available' });
-    res.json(payload);
+    if (!base) return res.status(404).json({ error: 'no draws available' });
+
+    // nextDraw is time-dependent, so it must be recomputed on EVERY request —
+    // never cached with the payload, or the countdown freezes at the slot that
+    // was current when the cache was last populated (e.g. it would show a past
+    // draw the day after it happened, until a new draw invalidated the cache).
+    const next = nextDrawDate(now());
+    res.json({ ...base, nextDraw: { date: next.toISOString(), drawNumber: base.drawNumber + 1 } });
   };
 }
 

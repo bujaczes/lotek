@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import express from 'express';
 import { openDatabase } from '../db/index.js';
 import { createApp } from '../src/server/app.js';
+import { latestDrawHandler } from '../src/server/draws.js';
 import { maskFromNumbers } from '../src/server/lib/mask.js';
 import { invalidateCache } from '../src/server/lib/cache.js';
 
@@ -190,6 +192,30 @@ describe('GET /api/draws/latest', () => {
     // /latest has no prev/next archive-navigation fields (that's the :nr detail's job).
     expect(res.body.prev).toBeUndefined();
     expect(res.body.next).toBeUndefined();
+  });
+
+  it('recomputes nextDraw live per request instead of freezing it in the cache', async () => {
+    // Inject the clock so we can advance time across draw slots without importing
+    // anything (which would invalidate the cache and mask the bug).
+    let clock = new Date('2026-07-24T07:08:00.000Z'); // a Friday, the day after a Thursday draw
+    const liveApp = express();
+    liveApp.get('/api/draws/latest', latestDrawHandler(db, { now: () => clock }));
+
+    const friday = await request(liveApp).get('/api/draws/latest');
+    expect(friday.status).toBe(200);
+    // nextDraw must be in the future relative to "now", never a past slot.
+    expect(new Date(friday.body.nextDraw.date).getTime()).toBeGreaterThan(clock.getTime());
+
+    // Advance several days past more draws — the cache still holds the same draw
+    // payload, but nextDraw must have moved forward with the clock.
+    clock = new Date('2026-07-28T21:00:00.000Z'); // the following Tuesday, after that day's draw
+    const tuesday = await request(liveApp).get('/api/draws/latest');
+    expect(new Date(tuesday.body.nextDraw.date).getTime()).toBeGreaterThan(clock.getTime());
+
+    expect(tuesday.body.nextDraw.date).not.toBe(friday.body.nextDraw.date);
+    // The cached (non-time) payload stayed identical across both requests.
+    expect(tuesday.body.drawNumber).toBe(friday.body.drawNumber);
+    expect(tuesday.body.nextDraw.drawNumber).toBe(friday.body.nextDraw.drawNumber);
   });
 
   it('404 when the database has no draws at all', async () => {
