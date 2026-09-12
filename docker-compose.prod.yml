@@ -11,6 +11,7 @@ services:
       - NODE_ENV=production
       - PORT=80
       - DB_PATH=/app/db/lotek.db
+      - LOTTO_API_KEY=${LOTTO_API_KEY:-}
     networks: [lotek, web]
 volumes:
   lotek-db:

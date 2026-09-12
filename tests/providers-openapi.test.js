@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSince, SOURCE } from '../src/server/providers/openapi.js';
 import { DEFAULT_FETCH_TIMEOUT_MS } from '../src/server/lib/fetch-timeout.js';
+
+const TESTS_DIR = dirname(fileURLToPath(import.meta.url));
+const FIXTURE_PATH = join(TESTS_DIR, '..', 'data', 'fixtures', 'openapi-response.json');
+const FIXTURE = JSON.parse(readFileSync(FIXTURE_PATH, 'utf8'));
 
 function jsonResponse(body, { ok = true, status = 200 } = {}) {
   return { ok, status, json: async () => body };
@@ -74,6 +81,16 @@ describe('providers/openapi — official developers.lotto.pl OpenAPI', () => {
     const draws = await fetchSince(7380, { fetchFn, now: NOW, sinceDrawnAt: '2026-07-18', apiKey: 'test-key' });
 
     expect(draws).toEqual([{ drawNumber: 7381, drawnAt: '2026-07-21', numbers: [4, 16, 23, 27, 29, 33], source: 'openapi' }]);
+  });
+
+  it('maps the real captured response, where LottoPlus is a separate items[] entry sharing the drawSystemId, to the Lotto draw only', async () => {
+    const fetchFn = vi.fn(async () => jsonResponse(FIXTURE));
+    const now = () => new Date('2026-09-11T08:00:00Z');
+
+    const draws = await fetchSince(7402, { fetchFn, now, sinceDrawnAt: '2026-09-08', apiKey: 'test-key' });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1); // only Thu 2026-09-10
+    expect(draws).toEqual([{ drawNumber: 7403, drawnAt: '2026-09-10', numbers: [1, 13, 22, 30, 36, 46], source: 'openapi' }]);
   });
 
   it('returns nothing new when sinceDrawNumber already covers every scanned date', async () => {

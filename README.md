@@ -227,8 +227,10 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 - **`deploy.yml`** (`workflow_run` po sukcesie Test na `master`): SSH na hosta →
   `git pull origin master` → `docker compose … up --build -d` → `docker image prune -f`.
 
-Sekrety repo (Settings → Secrets): `SSH_HOST`, `SSH_USER`, `SSH_KEY`. Docelowy `LOTTO_API_KEY`
-dodaje się jako `environment:` w compose prod, gdy klucz zaistnieje (kod już go czyta z env).
+Sekrety repo (Settings → Secrets): `SSH_HOST`, `SSH_USER`, `SSH_KEY`. `LOTTO_API_KEY` nie
+jest sekretem repo — compose prod interpoluje go z pliku `.env` obok plików compose na hoście
+(`LOTTO_API_KEY=...`, plik w `.gitignore`, `git pull` go nie rusza). Brak pliku → pusta
+wartość → provider `openapi` się wyłącza.
 
 ## Testy — kotwice matematyczne
 

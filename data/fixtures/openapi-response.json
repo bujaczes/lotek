@@ -1,0 +1,56 @@
+{
+  "_comment": "Real, untrimmed response captured 2026-09-12 via GET https://developers.lotto.pl/api/open/v1/lotteries/draw-results/by-date-per-game?gameType=Lotto&drawDate=2026-09-10&index=1&size=10&sort=drawDate&order=DESC with a valid secret header. Unlike the unofficial lotto.pl endpoint (lottopl-response.json), each game is its own items[] entry: Lotto and LottoPlus share drawSystemId/drawDate but are separate DrawResultsGrouped items, each with a single-game results[]. A date with no draw returns HTTP 404.",
+  "totalRows": 1,
+  "items": [
+    {
+      "drawSystemId": 7403,
+      "drawDate": "2026-09-10T20:00:00Z",
+      "gameType": "Lotto",
+      "multiplierValue": 0,
+      "results": [
+        {
+          "drawDate": "2026-09-10T20:00:00Z",
+          "drawSystemId": 7403,
+          "gameType": "Lotto",
+          "resultsJson": [
+            46,
+            1,
+            30,
+            36,
+            22,
+            13
+          ],
+          "specialResults": []
+        }
+      ],
+      "showSpecialResults": true,
+      "isNewEuroJackpotDraw": false
+    },
+    {
+      "drawSystemId": 7403,
+      "drawDate": "2026-09-10T20:00:00Z",
+      "gameType": "LottoPlus",
+      "multiplierValue": 0,
+      "results": [
+        {
+          "drawDate": "2026-09-10T20:00:00Z",
+          "drawSystemId": 7403,
+          "gameType": "LottoPlus",
+          "resultsJson": [
+            42,
+            2,
+            15,
+            19,
+            5,
+            12
+          ],
+          "specialResults": []
+        }
+      ],
+      "showSpecialResults": true,
+      "isNewEuroJackpotDraw": false
+    }
+  ],
+  "meta": {},
+  "code": 200
+}

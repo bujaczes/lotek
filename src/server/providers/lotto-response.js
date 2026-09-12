@@ -62,10 +62,18 @@ export function mapDrawResultsItem(item, source) {
  * Maps a full `{items: [...]}` envelope, throwing a clear error (not a TypeError) when
  * `items` itself is missing or not an array — the one shape check every caller needs
  * before it can even iterate.
+ *
+ * The two endpoints group games differently (confirmed 2026-09-12 against the live
+ * OpenAPI, see data/fixtures/openapi-response.json): lotto.pl nests LottoPlus inside the
+ * Lotto item's results[], while the OpenAPI returns LottoPlus as its own item with the
+ * same drawSystemId. Items whose item-level `gameType` names another game are skipped,
+ * so only malformed Lotto items throw.
  */
 export function mapDrawResultsResponse(body, source) {
   if (!body || !Array.isArray(body.items)) {
     throw new Error(`${source}: malformed response — missing items[] array`);
   }
-  return body.items.map((item) => mapDrawResultsItem(item, source));
+  return body.items
+    .filter((item) => !(item && typeof item === 'object' && typeof item.gameType === 'string' && item.gameType !== 'Lotto'))
+    .map((item) => mapDrawResultsItem(item, source));
 }
