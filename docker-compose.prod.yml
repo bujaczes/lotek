@@ -6,11 +6,11 @@ services:
       dockerfile: Dockerfile
     ports: !override []
     volumes:
-      - lotek-db:/app/db
+      - lotek-db:/app/data
     environment:
       - NODE_ENV=production
       - PORT=80
-      - DB_PATH=/app/db/lotek.db
+      - DB_PATH=/app/data/lotek.db
       - LOTTO_API_KEY=${LOTTO_API_KEY:-}
     networks: [lotek, web]
 volumes:

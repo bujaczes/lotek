@@ -77,3 +77,18 @@ CREATE TABLE IF NOT EXISTS import_log (
   status TEXT CHECK (status IN ('ok', 'partial', 'failed')),
   message TEXT
 );
+
+-- One row per draw: number of winners and the amount of ONE win per tier, from the LOTTO
+-- OpenAPI draw-prizes endpoint (data exists from draw 5048, 2011-08-25). Amounts in grosze.
+-- status 'empty' = the API answered but had no prize data (tier columns stay NULL).
+CREATE TABLE IF NOT EXISTS draw_prize (
+  game_type TEXT NOT NULL DEFAULT 'lotto',
+  draw_number INTEGER NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ok', 'empty')),
+  winners_6 INTEGER, amount_6 INTEGER,
+  winners_5 INTEGER, amount_5 INTEGER,
+  winners_4 INTEGER, amount_4 INTEGER,
+  winners_3 INTEGER, amount_3 INTEGER,
+  fetched_at INTEGER NOT NULL,
+  PRIMARY KEY (game_type, draw_number)
+);

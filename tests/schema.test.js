@@ -72,3 +72,64 @@ describe('draw schema constraints', () => {
     expect(() => insertDraw(db).run(baseDraw({ game_type: 'euromillions' }))).toThrow();
   });
 });
+
+describe('draw_prize schema', () => {
+  let db;
+
+  beforeEach(() => {
+    db = openDatabase(':memory:');
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  const insertPrize = (db_, overrides = {}) =>
+    db_
+      .prepare(
+        `INSERT INTO draw_prize (game_type, draw_number, status, winners_6, amount_6, winners_5, amount_5,
+                                 winners_4, amount_4, winners_3, amount_3, fetched_at)
+         VALUES (@game_type, @draw_number, @status, @winners_6, @amount_6, @winners_5, @amount_5,
+                 @winners_4, @amount_4, @winners_3, @amount_3, @fetched_at)`
+      )
+      .run({
+        game_type: 'lotto',
+        draw_number: 7407,
+        status: 'ok',
+        winners_6: 1,
+        amount_6: 4479485500,
+        winners_5: 107,
+        amount_5: 887400,
+        winners_4: 6221,
+        amount_4: 20070,
+        winners_3: 110146,
+        amount_3: 3500,
+        fetched_at: Date.now(),
+        ...overrides,
+      });
+
+  it('stores one row per draw with amounts in grosze', () => {
+    insertPrize(db);
+    const row = db.prepare('SELECT * FROM draw_prize WHERE draw_number = 7407').get();
+    expect(row).toMatchObject({ status: 'ok', winners_6: 1, amount_6: 4479485500, amount_3: 3500 });
+  });
+
+  it('accepts an empty row with NULL tiers', () => {
+    insertPrize(db, {
+      draw_number: 5047,
+      status: 'empty',
+      winners_6: null, amount_6: null, winners_5: null, amount_5: null,
+      winners_4: null, amount_4: null, winners_3: null, amount_3: null,
+    });
+    expect(db.prepare('SELECT status FROM draw_prize WHERE draw_number = 5047').get().status).toBe('empty');
+  });
+
+  it('rejects an unknown status', () => {
+    expect(() => insertPrize(db, { status: 'pending' })).toThrow(/CHECK constraint/);
+  });
+
+  it('rejects a second row for the same draw', () => {
+    insertPrize(db);
+    expect(() => insertPrize(db)).toThrow(/UNIQUE|PRIMARY KEY/);
+  });
+});

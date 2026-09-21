@@ -25,6 +25,9 @@ COPY data/fixtures ./data/fixtures
 COPY --from=build /app/dist ./dist
 ENV NODE_ENV=production
 ENV PORT=80
-ENV DB_PATH=/app/db/lotek.db
+# The DB volume lives on /app/data, NOT /app/db: a volume on /app/db used to shadow the
+# image's db/schema.sql and db/index.js with their first-deploy copies.
+RUN mkdir -p /app/data
+ENV DB_PATH=/app/data/lotek.db
 EXPOSE 80
 CMD ["node", "server.js"]

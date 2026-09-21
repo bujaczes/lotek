@@ -6,11 +6,11 @@ services:
     ports:
       - "3005:80"
     volumes:
-      - ./db:/app/db
+      - ./db:/app/data
     environment:
       - NODE_ENV=production
       - PORT=80
-      - DB_PATH=/app/db/lotek.db
+      - DB_PATH=/app/data/lotek.db
     networks: [lotek]
 networks:
   lotek:
