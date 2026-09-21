@@ -1,6 +1,6 @@
 import { createApp } from './src/server/app.js';
 import { openDatabase } from './db/index.js';
-import { startScheduler, shouldStartScheduler } from './src/server/lib/scheduler.js';
+import { startScheduler, shouldStartScheduler, isMissingLatestDraw } from './src/server/lib/scheduler.js';
 import { loadTyperConfig } from './src/server/lib/typer/config.js';
 import { predictHook } from './src/server/lib/typer/engine.js';
 
@@ -22,6 +22,12 @@ if (shouldStartScheduler({ nodeEnv: process.env.NODE_ENV, schedulerEnabled: proc
   console.log(`[scheduler] fetch-cycle next run: ${scheduler.jobs.fetch.nextRun()?.toISOString()}`);
   console.log(`[scheduler] reconcile next run: ${scheduler.jobs.reconcile.nextRun()?.toISOString()}`);
   console.log(`[scheduler] watchdog next run: ${scheduler.jobs.watchdog.nextRun()?.toISOString()}`);
+  // A deploy/restart kills any in-flight retry loop; catch up now instead of waiting for
+  // the next draw night.
+  if (isMissingLatestDraw(db)) {
+    console.log('[scheduler] latest scheduled draw missing, starting catch-up fetch cycle');
+    scheduler.triggerFetchCycle();
+  }
 } else {
   console.log('[scheduler] disabled (NODE_ENV=test or SCHEDULER_ENABLED=0)');
 }

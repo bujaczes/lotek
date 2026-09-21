@@ -6,6 +6,7 @@ import {
   runFetchCycle,
   reconcile,
   runWatchdog,
+  isMissingLatestDraw,
   startScheduler,
   shouldStartScheduler,
 } from '../src/server/lib/scheduler.js';
@@ -159,16 +160,42 @@ describe('runFetchCycle(db, options)', () => {
     expect(log.message).toBe('brak wyniku do 00:05');
   });
 
-  it('a fetchLatestFn rejection propagates (does not retry, does not evaluate)', async () => {
+  it('a fetchLatestFn rejection is retried like "nothing new" (right after 22:05 the OpenAPI can still serve a half-filled item), then succeeds', async () => {
+    const fetchLatestFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('all providers failed: openapi: malformed item — invalid drawSystemId: null'))
+      .mockResolvedValueOnce(fakeFetchResult({ added: 1, lastNumber: 7405 }));
+    const evaluateFn = vi.fn();
+    const predict = vi.fn(async () => {});
+    const scheduleRetry = vi.fn((fn) => fn());
+    const onAttemptError = vi.fn();
+
+    const result = await runFetchCycle(db, { hooks: { predict }, fetchLatestFn, evaluateFn, scheduleRetry, onAttemptError });
+
+    expect(fetchLatestFn).toHaveBeenCalledTimes(2);
+    expect(scheduleRetry).toHaveBeenCalledTimes(1);
+    expect(onAttemptError).toHaveBeenCalledTimes(1);
+    expect(evaluateFn).toHaveBeenCalledTimes(1);
+    expect(predict).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ added: 1, lastNumber: 7405, attempts: 2 });
+  });
+
+  it('a fetchLatestFn rejection on every attempt: exhausts all retries, writes "brak wyniku do 00:05", rejects with the last error', async () => {
     const fetchLatestFn = vi.fn(async () => {
       throw new Error('all providers failed: boom');
     });
     const evaluateFn = vi.fn();
-    const scheduleRetry = vi.fn();
+    const scheduleRetry = vi.fn((fn) => fn());
 
-    await expect(runFetchCycle(db, { fetchLatestFn, evaluateFn, scheduleRetry })).rejects.toThrow(/boom/);
+    await expect(
+      runFetchCycle(db, { fetchLatestFn, evaluateFn, scheduleRetry, onAttemptError: vi.fn() })
+    ).rejects.toThrow(/boom/);
+
+    expect(fetchLatestFn).toHaveBeenCalledTimes(13); // 1 initial + 12 retries
+    expect(scheduleRetry).toHaveBeenCalledTimes(12);
     expect(evaluateFn).not.toHaveBeenCalled();
-    expect(scheduleRetry).not.toHaveBeenCalled();
+    const log = db.prepare("SELECT * FROM import_log WHERE status = 'failed' ORDER BY id DESC LIMIT 1").get();
+    expect(log.message).toBe('brak wyniku do 00:05');
   });
 
   it('end-to-end with the real fetchLatest + real evaluatePredictions (only the provider chain is faked): a new draw flows all the way through to a scored prediction and the predict hook', async () => {
@@ -334,6 +361,42 @@ describe('runWatchdog(db, options) — >24h past the last expected draw with no 
     expect(result.status).toBe('failed');
     const log = db.prepare('SELECT * FROM import_log ORDER BY id DESC LIMIT 1').get();
     expect(log).toMatchObject({ status: 'failed', message: 'watchdog: brak losowania' });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isMissingLatestDraw
+// ---------------------------------------------------------------------------
+describe('isMissingLatestDraw(db, options) — boot-time catch-up gate used by server.js', () => {
+  let db;
+
+  beforeEach(() => {
+    db = openDatabase(':memory:');
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('true when the last scheduled slot (Sat 2026-09-19) has no draw row, even with older draws present', () => {
+    insertDraw(db, 7404, [13, 21, 24, 41, 43, 44], '2026-09-12');
+    const now = () => new Date('2026-09-21T10:00:00Z'); // Monday
+
+    expect(isMissingLatestDraw(db, { now })).toBe(true);
+  });
+
+  it('false once the last scheduled slot has its draw', () => {
+    insertDraw(db, 7407, [3, 6, 9, 22, 40, 48], '2026-09-19');
+    const now = () => new Date('2026-09-21T10:00:00Z');
+
+    expect(isMissingLatestDraw(db, { now })).toBe(false);
+  });
+
+  it('no 24h grace period, unlike the watchdog: minutes after a draw slot it already counts as missing', () => {
+    insertDraw(db, 7404, [13, 21, 24, 41, 43, 44], '2026-09-12');
+    const now = () => new Date('2026-09-15T20:30:00Z'); // Tue 22:30 Warsaw
+
+    expect(isMissingLatestDraw(db, { now })).toBe(true);
   });
 });
 

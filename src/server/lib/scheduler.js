@@ -29,6 +29,13 @@ const SCHEDULE = loadSchedule();
  * or an injected synchronous/fake-timer stand-in (tests). Once retries are exhausted,
  * writes a single `import_log` `failed` row ("brak wyniku do 00:05") and returns.
  *
+ * A rejected `fetchLatestFn` (every provider failed) is retried exactly like "nothing
+ * new": right after 22:05 the OpenAPI can still serve the fresh draw as a half-filled
+ * item (`drawSystemId: null`, seen 2026-09-15/17) and occasionally a transient 403, so
+ * one failure must not write off the whole night. Each failed attempt goes through
+ * `onAttemptError` (default `console.warn`); if the last attempt also failed, the cycle
+ * rejects with that error after writing the "brak wyniku" row.
+ *
  * Returns `fetchLatest`'s own result shape plus `attempts` (total `fetchLatestFn` calls
  * made, 1-indexed) and, when exhausted, `exhausted: true`.
  */
@@ -42,15 +49,24 @@ export async function runFetchCycle(db, options = {}) {
     evaluateFn = evaluatePredictions,
     scheduleRetry = (fn, delayMs) => setTimeout(fn, delayMs),
     scheduleConfig = SCHEDULE,
+    onAttemptError = (attemptNo, err) =>
+      console.warn(`[scheduler] fetch attempt ${attemptNo} failed: ${err.message}`),
   } = options;
 
   const maxAttempts = options.maxRetryAttempts ?? scheduleConfig.maxRetryAttempts;
   const intervalMs = options.retryIntervalMs ?? scheduleConfig.retryIntervalMinutes * 60000;
 
   async function attempt(attemptCount) {
-    const result = await fetchLatestFn(db, { providers, fetchFn, now });
+    let result;
+    let error = null;
+    try {
+      result = await fetchLatestFn(db, { providers, fetchFn, now });
+    } catch (err) {
+      error = err;
+      onAttemptError(attemptCount + 1, err);
+    }
 
-    if (result.added > 0) {
+    if (!error && result.added > 0) {
       evaluateFn(db);
       await hooks.predict?.();
       return { ...result, attempts: attemptCount + 1 };
@@ -70,10 +86,11 @@ export async function runFetchCycle(db, options = {}) {
       startedAt: Date.now(),
       finishedAt: Date.now(),
       drawsAdded: 0,
-      lastDrawNumber: result.lastNumber ?? null,
+      lastDrawNumber: result?.lastNumber ?? null,
       status: 'failed',
       message: 'brak wyniku do 00:05',
     });
+    if (error) throw error;
     return { ...result, attempts: attemptCount + 1, exhausted: true };
   }
 
@@ -192,6 +209,17 @@ export function runWatchdog(db, { now = () => new Date(), scheduleConfig = SCHED
     message: 'watchdog: brak losowania',
   });
   return { status: 'failed', expectedDateIso, ageHours };
+}
+
+/**
+ * Is the most recent scheduled draw slot (`previousDrawDate`) still missing from `db`?
+ * Checked once at boot by server.js, with no grace period (unlike `runWatchdog`): a
+ * restart (deploy, crash) kills any in-flight retry loop, and without a catch-up a
+ * missed draw would sit there until the next draw night's 22:05 cycle.
+ */
+export function isMissingLatestDraw(db, { now = () => new Date(), gameType = GAME_TYPE } = {}) {
+  const expectedDateIso = warsawDateIso(previousDrawDate(now()));
+  return !db.prepare(`SELECT 1 FROM draw WHERE game_type = ? AND drawn_at = ?`).get(gameType, expectedDateIso);
 }
 
 /**
