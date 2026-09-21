@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS draw_prize (
 `fetchPrizes(drawNumber, {fetchFn, apiKey})` → `{status: 'ok', tiers: {6: {winners, amount}, …}}` albo
 `{status: 'empty'}`. Walidacja każdego pola jak w `lotto-response.js`: element `Lotto` z pasującym
 `drawSystemId`, klucze 1–4, liczby całkowite ≥ 0 dla `prize`, skończone ≥ 0 dla `prizeValue`; kwota
-zamieniana na grosze (`Math.round(value * 100)`). Niepoprawny kształt → wyjątek z konkretnym opisem.
+zamieniana na grosze (`Math.round(value * 100)`). Wszystkie stopnie z zerową liczbą wygranych → `empty`
+(to raczej jeszcze nieogłoszone wyniki niż prawdziwe dane). Niepoprawny kształt → `PrizesShapeError` z konkretnym opisem.
 HTTP 404 → `empty`; inne nie-2xx → wyjątek z kodem. Bez klucza → wyjątek (jak `openapi.js`).
 
 ### `syncPrizes(db, options)` — `src/server/lib/prizes-sync.js`
@@ -79,19 +80,25 @@ HTTP 404 → `empty`; inne nie-2xx → wyjątek z kodem. Bez klucza → wyjątek
 3. Zapisuje każdy wynik od razu (upsert), więc przerwana partia nie traci postępu.
 4. Błąd HTTP / timeout → przerywa partię (nie zasypujemy API) i zwraca `{stopped: true, error}`.
    Niepoprawna odpowiedź dla jednego losowania → log i pominięcie (bez wiersza, więc wróci przy następnej partii).
-5. Po partii, w której przybył choć jeden wiersz `ok`, wywołuje `invalidateCache()`.
-6. Zwraca `{checked, ok, empty, skipped, stopped}`.
+5. Czyści cache odpowiedzi (`invalidateCache()`) po pierwszym nowym wierszu `ok`, potem co 50 i na końcu partii —
+   ostatnie losowanie pokazuje wygrane od razu, a nie dopiero po godzinnym dociąganiu historii.
+6. Zwraca `{checked, ok, empty, skipped, stopped}`. Bez `LOTTO_API_KEY` nic nie pobiera i zwraca `{disabled: true}`
+   (lokalny dev bez klucza nie spamuje logów).
 
 Opcje wstrzykiwane w testach: `fetchPrizesFn`, `sleep`, `now`, `throttleMs`, `limit` (domyślnie bez limitu).
 
 ### Kiedy się uruchamia (`scheduler.js` + `server.js`)
 
-Wspólna blokada (flaga jak `cycleRunning`) — nigdy dwie partie naraz; wyzwolenie w trakcie jest pomijane z logiem.
+Wspólna blokada partii (flaga jak `cycleRunning`) — nigdy dwie partie naraz; partia wyzwolona w trakcie innej
+jest pomijana z logiem (`{busy: true}`).
 
-- **Start serwera** (gdy scheduler włączony): pełna partia w tle. Pierwszy start po deployu dociąga całą historię
-  (~2 360 losowań, ok. 40–60 min), zaczynając od najnowszych.
-- **Po udanym cyklu pobrania wyników** (`added > 0`): partia od razu; jeśli najnowsze losowanie wciąż nie ma
-  wiersza `ok`, ponowienie co `prizeFollowUpIntervalMinutes` (30) do `prizeFollowUpAttempts` (6) razy.
+Każde wyzwolenie uruchamia `runPrizeSync`: partia, a jeśli partia się przerwała (`stopped`), była pominięta (`busy`)
+albo najnowsze losowanie wciąż ma status `pending` — ponowienie co `prizeFollowUpIntervalMinutes` (30) do
+`prizeFollowUpAttempts` (6) razy. `disabled` kończy od razu. Wyzwolenia:
+
+- **Start serwera** (gdy scheduler włączony). Pierwszy start po deployu dociąga całą historię
+  (~2 360 losowań, ok. 40–60 min), zaczynając od najnowszych; pojedynczy 403 nie zatrzymuje jej na dni.
+- **Po udanym cyklu pobrania wyników** (`added > 0`).
 - **Codziennie o `prizeSyncHour` (12:00)**: osobny cron `lotek-prizes` jako siatka bezpieczeństwa.
 
 Nowe klucze w `config/schedule.json`: `prizeSyncHour`, `prizeFollowUpIntervalMinutes`, `prizeFollowUpAttempts`,
@@ -141,7 +148,7 @@ Nowe klucze w `config/schedule.json`: `prizeSyncHour`, `prizeFollowUpIntervalMin
   `mostThrees` = najwięcej wygranych trójek.
 - `threeAmount` = pierwsze losowanie z danymi, każde losowanie, w którym kwota za trójkę zmieniła się
   względem poprzedniego, i ostatnie losowanie (żeby schodek sięgał dziś).
-- Brak jakichkolwiek wierszy `ok` → rekordy `null`, `threeAmount: []` (sekcja pokazuje komunikat).
+- Brak jakichkolwiek wierszy `ok` → `coverage: null`, `records: null`, `threeAmount: []` (sekcja pokazuje komunikat).
 
 ## Interfejs
 
