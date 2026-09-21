@@ -1,0 +1,36 @@
+{
+  "_comment": "Real, untrimmed response captured 2026-09-21 via GET https://developers.lotto.pl/api/open/v1/lotteries/draw-prizes/Lotto/7407 with a valid secret header. The API returns a bare array; it is stored under `body` only so this comment can sit next to it. Items: Lotto, LottoPlus, SuperSzansa (drawSystemId null). prizes keys \"1\"-\"4\" = tiers I-IV = 6/5/4/3 hits; prize = number of winners, prizeValue = amount of ONE win in zł. Draws before 5048 (2011-08-25) come back with prizesEmpty: true and prizes: {}.",
+  "body": [
+    {
+      "prizes": {
+        "1": { "prize": 1, "prizeValue": 44794855.0000 },
+        "2": { "prize": 107, "prizeValue": 8874.0000 },
+        "3": { "prize": 6221, "prizeValue": 200.7000 },
+        "4": { "prize": 110146, "prizeValue": 35.0000 }
+      },
+      "drawDate": "2026-09-19T20:00:00Z",
+      "drawSystemId": 7407,
+      "gameType": "Lotto",
+      "prizesEmpty": false
+    },
+    {
+      "prizes": {
+        "1": { "prize": 0, "prizeValue": 0.0000 },
+        "2": { "prize": 73, "prizeValue": 3500.0000 },
+        "3": { "prize": 3891, "prizeValue": 100.0000 },
+        "4": { "prize": 72981, "prizeValue": 10.0000 }
+      },
+      "drawDate": "2026-09-19T20:00:00Z",
+      "drawSystemId": 7407,
+      "gameType": "LottoPlus",
+      "prizesEmpty": false
+    },
+    {
+      "prizes": {},
+      "drawDate": "2026-09-19T20:00:00Z",
+      "drawSystemId": null,
+      "gameType": "SuperSzansa",
+      "prizesEmpty": false
+    }
+  ]
+}
