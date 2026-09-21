@@ -121,6 +121,19 @@ export function createPrizesSection(data, createChart) {
       `Rekordy uzupełnią się same.`;
 
   const box = chartBox(CHART_HEIGHT, 'Kwota za trzy trafienia od 2011 roku');
+
+  const threeNote = (() => {
+    if (data.threeAmount.length === 0) return null;
+    const steps = changesOnly(data.threeAmount);
+    const first = steps[0];
+    const last = steps[steps.length - 1];
+    const changes = steps.length - 1;
+    return changes === 0
+      ? `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} wynosi ${formatPln(first.amount)}.`
+      : `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} zmieniła się ` +
+        `${changes} ${pluralPl(changes, ['raz', 'razy', 'razy'])}: z ${formatPln(first.amount)} na ${formatPln(last.amount)}.`;
+  })();
+
   const node = statsSection({
     index: 8,
     id: 'wygrane',
@@ -131,6 +144,7 @@ export function createPrizesSection(data, createChart) {
       el('div', { class: 'panel card' }, [
         el('p', { class: 'eyebrow' }, 'Kwota za trójkę'),
         box,
+        chartNote(threeNote),
         tableView(
           'Zmiany kwoty za trzy trafienia',
           ['Od losowania', 'Data', 'Kwota'],

@@ -235,6 +235,10 @@ describe('createStatsView', () => {
     // table view lists the changes only: the trailing "still 35 zł" point is not a change
     expect(section.querySelectorAll('.chart-table tbody tr')).toHaveLength(3);
     expect(section.querySelector('.stats-section__lead').textContent).toContain('5048');
+
+    const note = section.querySelector('.panel .chart-note').textContent.replace(/\s+/g, ' ');
+    expect(note).toContain('zmieniła się 2 razy');
+    expect(note).toContain('z 20,00 zł na 35,00 zł');
   });
 
   it('says the history backfill is still running when coverage is not complete', async () => {
