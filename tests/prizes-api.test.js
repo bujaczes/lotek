@@ -109,7 +109,15 @@ describe('GET /api/stats/prizes', () => {
   it('reports coverage from the first draw with prizes', async () => {
     const res = await request(app).get('/api/stats/prizes');
     expect(res.status).toBe(200);
-    expect(res.body.coverage).toEqual({ fromDrawNumber: 5048, fromDate: '2011-08-25', draws: 4 });
+    expect(res.body.coverage).toEqual({ fromDrawNumber: 5048, fromDate: '2011-08-25', draws: 4, complete: true });
+  });
+
+  it('coverage is incomplete while the history backfill has not reached FIRST_PRIZE_DRAW yet', async () => {
+    db.prepare('DELETE FROM draw_prize WHERE draw_number = 5048').run();
+    invalidateCache();
+
+    const res = await request(app).get('/api/stats/prizes');
+    expect(res.body.coverage).toEqual({ fromDrawNumber: 5049, fromDate: '2011-08-27', draws: 3, complete: false });
   });
 
   it('computes every record, keeping ties', async () => {

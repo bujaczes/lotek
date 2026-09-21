@@ -176,6 +176,9 @@ In-process (croner), strefa **Europe/Warsaw** jawnie (przez DST). Wszystkie dni/
    brak nowego wyniku → retry co 10 min, max 12 prób (~do 00:05), potem import_log 'failed'
 niedziela 08:00 → reconcile (pełny diff historii, tylko raport)
 codziennie 12:00 → watchdog (brak losowania >24 h po terminie → import_log 'failed')
+codziennie 12:00 → lotek-prizes: sync wygranych z OpenAPI draw-prizes (dane od losowania nr
+   5048 / 25.08.2011), odpala się też na starcie serwera i po każdym nowym losowaniu; brak
+   ustalonego wyniku najnowszego losowania → follow-up co 30 min, max 6 prób
 ```
 
 Gwarancje: pojedyncze uruchomienie na raz (flaga `cycleRunning` obejmuje całą pętlę
@@ -187,8 +190,10 @@ retry), idempotencja importu (unikalny indeks + `contiguousPrefix`).
 
 - **`config/schedule.json`** — `timeZone`, `drawDays` (`[2,4,6]` = wt/czw/sob), `drawHour`,
   `fetchMinute`, `retryIntervalMinutes`, `maxRetryAttempts`, `reconcileDayOfWeek`,
-  `reconcileHour`, `watchdogHour`, `watchdogStaleHours`. Czytany fail-loud przez
-  `src/server/lib/config.js`.
+  `reconcileHour`, `watchdogHour`, `watchdogStaleHours`, `prizeSyncHour` (godzina cronu
+  `lotek-prizes`), `prizeFollowUpIntervalMinutes`/`prizeFollowUpAttempts` (follow-upy, gdy
+  najnowsze losowanie jeszcze nie ma ustalonych wygranych), `prizeThrottleMs` (odstęp między
+  requestami do OpenAPI przy backfillu). Czytany fail-loud przez `src/server/lib/config.js`.
 - **`config/prizes.json`** — stawki nagród kluczowane **liczbą trafień** (poprawka względem
   numeracji stopni w SPEC): `{"6":2000000,"5":6000,"4":200,"3":24,"betPrice":3.0}`. Etykieta
   „szacunek edukacyjny”. Używane przez Wehikuł i „Sprawdzam!”.

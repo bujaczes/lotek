@@ -493,7 +493,7 @@ describe('shouldStartScheduler({nodeEnv, schedulerEnabled}) — pure gate used b
 // ---------------------------------------------------------------------------
 // startScheduler
 // ---------------------------------------------------------------------------
-describe('startScheduler(db, options) — wires the three cron jobs + in-process overlap guard', () => {
+describe('startScheduler(db, options) — wires the four cron jobs + in-process overlap guard', () => {
   let db;
 
   beforeEach(() => {

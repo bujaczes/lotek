@@ -111,14 +111,21 @@ export function createPrizesSection(data, createChart) {
     };
   }
 
+  const { fromDrawNumber, fromDate, draws, complete } = data.coverage;
+  const lead = complete
+    ? `Totalizator Sportowy udostępnia liczbę wygranych i ich kwoty od losowania nr ${fromDrawNumber} ` +
+      `(${formatShortDate(fromDate)}) — to ${formatInt(draws)} ` +
+      `${pluralPl(draws, ['losowanie', 'losowania', 'losowań'])}. Wcześniejszych nie ma.`
+    : `Trwa pobieranie historii wygranych z API Totalizatora Sportowego — na razie od losowania nr ${fromDrawNumber} ` +
+      `(${formatShortDate(fromDate)}), ${formatInt(draws)} ${pluralPl(draws, ['losowanie', 'losowania', 'losowań'])}. ` +
+      `Rekordy uzupełnią się same.`;
+
   const box = chartBox(CHART_HEIGHT, 'Kwota za trzy trafienia od 2011 roku');
   const node = statsSection({
     index: 8,
     id: 'wygrane',
     title: TITLE,
-    lead:
-      `Totalizator Sportowy udostępnia liczbę wygranych i ich kwoty od losowania nr ${data.coverage.fromDrawNumber} ` +
-      `(${formatShortDate(data.coverage.fromDate)}) — to ${formatInt(data.coverage.draws)} losowań. Wcześniejszych nie ma.`,
+    lead,
     children: [
       el('div', { class: 'records__grid' }, recordCards(data.records)),
       el('div', { class: 'panel card' }, [

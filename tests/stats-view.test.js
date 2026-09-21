@@ -14,7 +14,7 @@ vi.mock('../src/charts/echarts.js', () => ({
   },
 }));
 
-const api = vi.hoisted(() => ({ fail: new Set(), prizesEmpty: false }));
+const api = vi.hoisted(() => ({ fail: new Set(), prizesEmpty: false, prizesOverride: null }));
 
 const SUMS = {
   histogram: Array.from({ length: 259 }, (_, i) => ({ sum: 21 + i, count: i === 129 ? 90 : 1 })),
@@ -58,7 +58,7 @@ const RECORDS = {
   birthdayness: { lastDrawNumber: 7380, count: 3, share: 0.5, theoretical: 0.6326530612244898 },
 };
 const PRIZES = {
-  coverage: { fromDrawNumber: 5048, fromDate: '2011-08-25', draws: 2360 },
+  coverage: { fromDrawNumber: 5048, fromDate: '2011-08-25', draws: 2360, complete: true },
   records: {
     topJackpot: { value: 44794855, draws: [{ drawNumber: 7407, date: '2026-09-19', numbers: [3, 6, 9, 22, 40, 48], winners: 1, amount: 44794855 }] },
     mostSixes: { value: 3, draws: [{ drawNumber: 6000, date: '2017-09-12', numbers: [1, 2, 3, 4, 5, 6], winners: 3, amount: 2000000 }] },
@@ -90,7 +90,9 @@ vi.mock('../src/api.js', () => {
     getPrizesStats: () =>
       api.fail.has('prizes')
         ? Promise.reject(new Error('boom'))
-        : Promise.resolve(api.prizesEmpty ? { coverage: null, records: null, threeAmount: [] } : PRIZES),
+        : Promise.resolve(
+            api.prizesEmpty ? { coverage: null, records: null, threeAmount: [] } : (api.prizesOverride ?? PRIZES)
+          ),
   };
 });
 
@@ -106,6 +108,7 @@ function mountView() {
 beforeEach(() => {
   api.fail.clear();
   api.prizesEmpty = false;
+  api.prizesOverride = null;
   chart.created.length = 0;
   chart.disposed = 0;
   chart.explode = false;
@@ -232,6 +235,18 @@ describe('createStatsView', () => {
     // table view lists the changes only: the trailing "still 35 zł" point is not a change
     expect(section.querySelectorAll('.chart-table tbody tr')).toHaveLength(3);
     expect(section.querySelector('.stats-section__lead').textContent).toContain('5048');
+  });
+
+  it('says the history backfill is still running when coverage is not complete', async () => {
+    api.prizesOverride = {
+      ...PRIZES,
+      coverage: { fromDrawNumber: 7000, fromDate: '2024-01-02', draws: 408, complete: false },
+    };
+    const { container, done } = mountView();
+    await done;
+    const lead = container.querySelector('#wygrane .stats-section__lead').textContent;
+    expect(lead).toContain('Trwa pobieranie historii');
+    expect(lead).toContain('nr 7000');
   });
 
   it('says the prize data is still loading when the table is empty', async () => {

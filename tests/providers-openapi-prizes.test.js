@@ -52,6 +52,16 @@ describe('mapPrizesResponse(body, drawNumber)', () => {
     expect(result.tiers[4]).toEqual({ winners: 1744, amount: 40460 });
   });
 
+  it('zero trójka winners -> empty (counting not finished)', () => {
+    const prizes = tiersOf([[1, 100], [10, 5000], [500, 200], [0, 0]]);
+    expect(mapPrizesResponse([lottoItem({ prizes })], 7407)).toEqual({ status: 'empty' });
+  });
+
+  it('winners known but amount still 0 -> empty', () => {
+    const prizes = tiersOf([[0, 0], [32, 0], [1744, 404.6], [34020, 20]]);
+    expect(mapPrizesResponse([lottoItem({ prizes })], 7407)).toEqual({ status: 'empty' });
+  });
+
   it.each([
     ['the body is not an array', { items: [] }],
     ['there is no Lotto item', FIXTURE.filter((i) => i.gameType !== 'Lotto')],

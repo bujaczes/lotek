@@ -22,8 +22,10 @@ export class PrizesShapeError extends Error {}
  * `{prize: winners, prizeValue: zł per win}`. Amounts come back in grosze.
  *
  * `empty` covers every "the API has nothing (yet)" shape: `prizesEmpty`, an empty `prizes`
- * object, and zero winners in every tier (there are always thousands of trójki in a real
- * draw, so all-zero can only be a not-yet-announced placeholder).
+ * object, zero trójka (3-hit) winners (there are always thousands in a real draw, so this
+ * also catches the all-zero placeholder), and any tier whose winner count is known but
+ * whose amount is still 0 (a half-announced answer right after the draw — winners come in
+ * before amounts). A six with 0 winners and amount 0 stays a valid result (kumulacja).
  */
 export function mapPrizesResponse(body, drawNumber) {
   if (!Array.isArray(body)) {
@@ -62,7 +64,8 @@ export function mapPrizesResponse(body, drawNumber) {
     tiers[hits] = { winners: prize, amount: Math.round(prizeValue * 100) };
   }
 
-  if (Object.values(tiers).every((t) => t.winners === 0)) return { status: 'empty' };
+  if (tiers[3].winners === 0) return { status: 'empty' };
+  if (Object.values(tiers).some((t) => t.winners > 0 && t.amount === 0)) return { status: 'empty' };
   return { status: 'ok', tiers };
 }
 

@@ -10,7 +10,7 @@ Wiążące dla każdego zadania. Wzorzec domowy = Panoramix/Hankometr (Node, jed
 - **Frontend**: Vite + vanilla JS SPA (router na History API), ręczny CSS z tokenami (BEZ Tailwinda), ECharts z npm (importy modułowe z `echarts/core`). Fonty z Google Fonts CDN.
 - **Testy**: Vitest + supertest. Baza testowa: `openDatabase(':memory:')` per test albo plik w `/tmp` kasowany przed testem. Zero sieci w testach jednostkowych (wstrzykiwany `fetchFn`); wyjątek: testy integracyjne na commitowanym fixture `data/fixtures/dl_snapshot.txt.gz`.
 - **Porty**: API dev **3005**, Vite dev **5177** (proxy `/api` → 3005), kontener nasłuchuje na **80**.
-- **Docker**: dwustopniowy `node:22-alpine` (build frontu → runtime; toolchain `python3 make g++` tylko na czas kompilacji better-sqlite3, potem `apk del`). Compose: base (`ports 3005:80`, bind-mount `./db:/app/db`) + `docker-compose.prod.yml` (`container_name: lotek-app`, `ports: !override []`, named volume `lotek-db`, sieci `lotek` + external `web`).
+- **Docker**: dwustopniowy `node:22-alpine` (build frontu → runtime; toolchain `python3 make g++` tylko na czas kompilacji better-sqlite3, potem `apk del`). Compose: base (`ports 3005:80`, bind-mount `./db:/app/data`) + `docker-compose.prod.yml` (`container_name: lotek-app`, `ports: !override []`, named volume `lotek-db`, sieci `lotek` + external `web`).
 - **CI**: GitHub Actions — `test.yml` (push master + PR: npm ci, npm test, npm run build), `deploy.yml` (workflow_run po sukcesie Test na master, SSH → `cd /home/dev/www/rockingchair/lotek && git pull && docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d`).
 
 ## Reguły domenowe (niezmienne)

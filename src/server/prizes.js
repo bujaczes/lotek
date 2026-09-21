@@ -1,4 +1,5 @@
 import { cached } from './lib/cache.js';
+import { FIRST_PRIZE_DRAW } from './lib/prize-store.js';
 
 const GAME_TYPE = 'lotto';
 
@@ -67,7 +68,12 @@ export function prizesStatsHandler(db) {
       const records = Object.fromEntries(Object.entries(RECORDS).map(([key, spec]) => [key, record(db, spec)]));
 
       return {
-        coverage: { fromDrawNumber: rows[0].draw_number, fromDate: rows[0].drawn_at, draws: rows.length },
+        coverage: {
+          fromDrawNumber: rows[0].draw_number,
+          fromDate: rows[0].drawn_at,
+          draws: rows.length,
+          complete: rows[0].draw_number <= FIRST_PRIZE_DRAW,
+        },
         records,
         threeAmount,
       };
