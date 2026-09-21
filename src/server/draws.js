@@ -1,6 +1,7 @@
 import { cached } from './lib/cache.js';
 import { nextDrawDate } from './lib/schedule.js';
 import { numbersFromMask } from './lib/mask.js';
+import { prizesView } from './lib/prize-store.js';
 
 const GAME_TYPE = 'lotto';
 const DEFAULT_PER_PAGE = 20;
@@ -97,7 +98,9 @@ export function latestDrawHandler(db, { now = () => new Date() } = {}) {
       if (!target) return null;
 
       const retro = buildRetrospectiveFields(db, { targetRow: target, cutoffDrawNumber: target.draw_number });
-      return { ...toDrawView(target), ...retro };
+      // Cached with the draw: syncPrizes clears the cache as soon as new prizes land.
+      const prizes = prizesView(db, { drawNumber: target.draw_number, drawnAt: target.drawn_at });
+      return { ...toDrawView(target), ...retro, prizes };
     });
 
     if (!base) return res.status(404).json({ error: 'no draws available' });
@@ -142,6 +145,7 @@ export function drawDetailHandler(db) {
       return {
         ...toDrawView(target),
         ...retro,
+        prizes: prizesView(db, { drawNumber: nr, drawnAt: target.drawn_at }),
         prev: prevRow ? { drawNumber: prevRow.draw_number, date: prevRow.drawn_at } : null,
         next: nextRow ? { drawNumber: nextRow.draw_number, date: nextRow.drawn_at } : null,
       };
