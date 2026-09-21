@@ -261,6 +261,16 @@ describe('createStatsView', () => {
     expect(container.querySelectorAll('#wygrane .record-card')).toHaveLength(0);
   });
 
+  it('renders no chart note when threeAmount is empty', async () => {
+    api.prizesOverride = {
+      ...PRIZES,
+      threeAmount: [],
+    };
+    const { container, done } = mountView();
+    await done;
+    expect(container.querySelector('#wygrane .panel .chart-note')).toBeNull();
+  });
+
   it('gives every chart a table view (the relief channel for the amber fill)', async () => {
     const { container, done } = mountView();
     await done;

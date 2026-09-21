@@ -122,17 +122,19 @@ export function createPrizesSection(data, createChart) {
 
   const box = chartBox(CHART_HEIGHT, 'Kwota za trzy trafienia od 2011 roku');
 
-  const threeNote = (() => {
-    if (data.threeAmount.length === 0) return null;
-    const steps = changesOnly(data.threeAmount);
+  const steps = data.threeAmount.length > 0 ? changesOnly(data.threeAmount) : [];
+  let threeNoteElement = null;
+  if (steps.length > 0) {
     const first = steps[0];
     const last = steps[steps.length - 1];
     const changes = steps.length - 1;
-    return changes === 0
-      ? `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} wynosi ${formatPln(first.amount)}.`
-      : `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} zmieniła się ` +
-        `${changes} ${pluralPl(changes, ['raz', 'razy', 'razy'])}: z ${formatPln(first.amount)} na ${formatPln(last.amount)}.`;
-  })();
+    const threeNoteText =
+      changes === 0
+        ? `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} wynosi ${formatPln(first.amount)}.`
+        : `Kwota za trójkę jest stała (ustala ją regulamin gry) — od ${formatShortDate(first.date)} zmieniła się ` +
+          `${changes} ${pluralPl(changes, ['raz', 'razy', 'razy'])}: z ${formatPln(first.amount)} na ${formatPln(last.amount)}.`;
+    threeNoteElement = chartNote(threeNoteText);
+  }
 
   const node = statsSection({
     index: 8,
@@ -144,11 +146,11 @@ export function createPrizesSection(data, createChart) {
       el('div', { class: 'panel card' }, [
         el('p', { class: 'eyebrow' }, 'Kwota za trójkę'),
         box,
-        chartNote(threeNote),
+        threeNoteElement,
         tableView(
           'Zmiany kwoty za trzy trafienia',
           ['Od losowania', 'Data', 'Kwota'],
-          changesOnly(data.threeAmount).map((p) => [`nr ${p.drawNumber}`, formatShortDate(p.date), formatPln(p.amount)])
+          steps.map((p) => [`nr ${p.drawNumber}`, formatShortDate(p.date), formatPln(p.amount)])
         ),
       ]),
     ],
