@@ -5,7 +5,7 @@ import { statsSection, chartNote } from './section.js';
 // SPEC 6.13 (+ 6.15 birthday-ness). Extremes are a KPI row of stat tiles, not a chart:
 // each is a single number with one draw behind it.
 
-function drawLink(draw) {
+export function drawLink(draw) {
   return el('a', { class: 'record-card__draw', href: `/losowanie/${draw.drawNumber}` }, [
     el('span', { class: 'mono' }, `nr ${draw.drawNumber}`),
     ' · ',
@@ -13,7 +13,7 @@ function drawLink(draw) {
   ]);
 }
 
-function balls(numbers, highlight = []) {
+export function balls(numbers, highlight = []) {
   const marked = new Set(highlight);
   return el(
     'span',
@@ -24,7 +24,7 @@ function balls(numbers, highlight = []) {
   );
 }
 
-function card({ label, value, unit, meta = [], footer }) {
+export function card({ label, value, unit, meta = [], footer }) {
   return el('div', { class: 'panel card record-card' }, [
     el('span', { class: 'record-card__label' }, label),
     el('span', { class: 'record-card__value' }, [
@@ -36,7 +36,7 @@ function card({ label, value, unit, meta = [], footer }) {
   ]);
 }
 
-function tieNote(list) {
+export function tieNote(list) {
   const extra = list.length - 1;
   if (extra <= 0) return null;
   return el(

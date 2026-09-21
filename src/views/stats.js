@@ -8,6 +8,7 @@ import {
   getRepeatsStats,
   getDuplicateSixesStats,
   getRecordsStats,
+  getPrizesStats,
 } from '../api.js';
 import { sectionError, sectionLoading } from '../components/stats/section.js';
 import { createSumSection } from '../components/stats/sum-section.js';
@@ -17,8 +18,9 @@ import { createPairsSection } from '../components/stats/pairs-section.js';
 import { createMythsSection } from '../components/stats/myths-section.js';
 import { createDuplicatesSection } from '../components/stats/duplicates-section.js';
 import { createRecordsSection } from '../components/stats/records-section.js';
+import { createPrizesSection } from '../components/stats/prizes-section.js';
 
-// /statystyki — SPEC 6.4-6.9, 6.12, 6.13. Seven independent sections: each has its own
+// /statystyki — SPEC 6.4-6.9, 6.12, 6.13. Eight independent sections: each has its own
 // loading state and its own failure state, so one dead endpoint never blanks the page.
 // ECharts is code-split and pulled in only when this route is entered.
 
@@ -30,12 +32,13 @@ const SLOTS = [
   { key: 'myths', loading: 'Wczytuję sąsiadujące i powtórki…' },
   { key: 'duplicates', loading: 'Sprawdzam powtórzone szóstki…' },
   { key: 'records', loading: 'Wczytuję rekordy…' },
+  { key: 'prizes', loading: 'Wczytuję wygrane…' },
 ];
 
 function pageHead() {
   return el('header', { class: 'stats-head' }, [
     el('p', { class: 'eyebrow' }, 'Statystyki'),
-    el('h1', { class: 'stats-head__title' }, 'Siedem sposobów, żeby zobaczyć przypadek'),
+    el('h1', { class: 'stats-head__title' }, 'Osiem sposobów, żeby zobaczyć przypadek'),
     el('p', { class: 'stats-head__lead' },
       'Przy każdej liczbie empirycznej stoi tu wartość teoretyczna. Nie po to, żeby wskazać zestaw, ' +
         'który wygra — taki nie istnieje — tylko po to, żeby pokazać, jak dokładnie 70 lat losowań trafia w matematykę.'),
@@ -76,6 +79,7 @@ export function createStatsView() {
         repeats: getRepeatsStats({ signal }),
         duplicates: getDuplicateSixesStats({ signal }),
         records: getRecordsStats({ signal }),
+        prizes: getPrizesStats({ signal }),
       };
 
       async function fill(key, message, build) {
@@ -120,6 +124,9 @@ export function createStatsView() {
           return createDuplicatesSection(await data.duplicates, drawsCount);
         }),
         fill('records', 'Nie udało się wczytać rekordów.', async () => createRecordsSection(await data.records)),
+        fill('prizes', 'Nie udało się wczytać wygranych.', async () =>
+          createPrizesSection(await data.prizes, await chartApi)
+        ),
       ]);
     },
 

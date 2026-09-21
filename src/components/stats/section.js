@@ -1,8 +1,8 @@
 import { el } from '../../dom.js';
 
 // Shared shell for every /statystyki section: eyebrow number, title, one or two
-// sentences of context, then the panel. Keeps the seven sections visually identical
-// so the page reads as one document rather than seven widgets.
+// sentences of context, then the panel. Keeps the eight sections visually identical
+// so the page reads as one document rather than eight widgets.
 
 export function statsSection({ index, title, lead, children = [], id }) {
   return el('section', { class: 'stats-section', id }, [

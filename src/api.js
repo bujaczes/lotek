@@ -81,6 +81,9 @@ export const getDuplicateSixesStats = (opts) => apiGet('/stats/duplicate-sixes',
 // { maxSum, minSum, longestRun, longestDrought, recordAbsence, birthdayness }.
 export const getRecordsStats = (opts) => apiGet('/stats/records', opts);
 
+// { coverage, records: { topJackpot, mostSixes, maxFive, maxFour, mostThrees }, threeAmount }.
+export const getPrizesStats = (opts) => apiGet('/stats/prizes', opts);
+
 // --- /typer --------------------------------------------------------------
 // { current: { prediction, commentary } | null, history: [...], nullHypothesis }.
 export const getTyper = (opts) => apiGet('/typer', opts);

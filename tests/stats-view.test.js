@@ -14,7 +14,7 @@ vi.mock('../src/charts/echarts.js', () => ({
   },
 }));
 
-const api = vi.hoisted(() => ({ fail: new Set() }));
+const api = vi.hoisted(() => ({ fail: new Set(), prizesEmpty: false }));
 
 const SUMS = {
   histogram: Array.from({ length: 259 }, (_, i) => ({ sum: 21 + i, count: i === 129 ? 90 : 1 })),
@@ -57,6 +57,22 @@ const RECORDS = {
   recordAbsence: { number: 48, gap: 94, type: 'historical', endedAt: '1968-12-01' },
   birthdayness: { lastDrawNumber: 7380, count: 3, share: 0.5, theoretical: 0.6326530612244898 },
 };
+const PRIZES = {
+  coverage: { fromDrawNumber: 5048, fromDate: '2011-08-25', draws: 2360 },
+  records: {
+    topJackpot: { value: 44794855, draws: [{ drawNumber: 7407, date: '2026-09-19', numbers: [3, 6, 9, 22, 40, 48], winners: 1, amount: 44794855 }] },
+    mostSixes: { value: 3, draws: [{ drawNumber: 6000, date: '2017-09-12', numbers: [1, 2, 3, 4, 5, 6], winners: 3, amount: 2000000 }] },
+    maxFive: { value: 50000, draws: [{ drawNumber: 6100, date: '2018-05-01', numbers: [7, 8, 9, 10, 11, 12], winners: 2, amount: 50000 }] },
+    maxFour: { value: 900.5, draws: [{ drawNumber: 6200, date: '2019-01-08', numbers: [13, 14, 15, 16, 17, 18], winners: 300, amount: 900.5 }] },
+    mostThrees: { value: 150000, draws: [{ drawNumber: 6300, date: '2019-08-20', numbers: [19, 20, 21, 22, 23, 24], winners: 150000, amount: 24 }] },
+  },
+  threeAmount: [
+    { drawNumber: 5048, date: '2011-08-25', amount: 20 },
+    { drawNumber: 6000, date: '2017-09-12', amount: 24 },
+    { drawNumber: 7200, date: '2025-05-01', amount: 35 },
+    { drawNumber: 7407, date: '2026-09-19', amount: 35 },
+  ],
+};
 
 vi.mock('../src/api.js', () => {
   const endpoint = (name, payload) => () =>
@@ -71,6 +87,10 @@ vi.mock('../src/api.js', () => {
     getRepeatsStats: endpoint('repeats', REPEATS),
     getDuplicateSixesStats: endpoint('duplicates', DUPLICATES),
     getRecordsStats: endpoint('records', RECORDS),
+    getPrizesStats: () =>
+      api.fail.has('prizes')
+        ? Promise.reject(new Error('boom'))
+        : Promise.resolve(api.prizesEmpty ? { coverage: null, records: null, threeAmount: [] } : PRIZES),
   };
 });
 
@@ -85,6 +105,7 @@ function mountView() {
 
 beforeEach(() => {
   api.fail.clear();
+  api.prizesEmpty = false;
   chart.created.length = 0;
   chart.disposed = 0;
   chart.explode = false;
@@ -93,11 +114,11 @@ beforeEach(() => {
 describe('createStatsView', () => {
   it('shows a loading state for every section before the data arrives', () => {
     const { container } = mountView();
-    expect(container.querySelectorAll('.stats-slot')).toHaveLength(7);
-    expect(container.querySelectorAll('.stats-slot .loading')).toHaveLength(7);
+    expect(container.querySelectorAll('.stats-slot')).toHaveLength(8);
+    expect(container.querySelectorAll('.stats-slot .loading')).toHaveLength(8);
   });
 
-  it('renders all seven sections on real-shaped data', async () => {
+  it('renders all eight sections on real-shaped data', async () => {
     const { container, done } = mountView();
     await done;
     const titles = [...container.querySelectorAll('.stats-section__title')].map((h) => h.textContent);
@@ -109,15 +130,16 @@ describe('createStatsView', () => {
       'Sąsiadujące i powtórki',
       'Powtórzone szóstki',
       'Rekordy',
+      'Wygrane od 2011',
     ]);
     expect(container.querySelectorAll('.loading')).toHaveLength(0);
     expect(container.querySelectorAll('.section-error')).toHaveLength(0);
   });
 
-  it('inits one chart per chart panel (sum, carpet, two structure charts)', async () => {
+  it('inits one chart per chart panel (sum, carpet, two structure charts, trójka)', async () => {
     const { done } = mountView();
     await done;
-    expect(chart.created).toHaveLength(4);
+    expect(chart.created).toHaveLength(5);
     expect(chart.created[0].option.series[0].type).toBe('bar');
     expect(chart.created[1].option.series[0]).toMatchObject({ type: 'scatter', large: true, symbolSize: 2 });
   });
@@ -139,9 +161,9 @@ describe('createStatsView', () => {
     await done;
     expect(container.querySelectorAll('.section-error')).toHaveLength(1);
     expect(container.querySelector('.section-error__msg').textContent).toContain('dywanu');
-    expect(container.querySelectorAll('.stats-section')).toHaveLength(6);
-    // charts: sum + two structure panels, carpet never got built
-    expect(chart.created).toHaveLength(3);
+    expect(container.querySelectorAll('.stats-section')).toHaveLength(7);
+    // charts: sum + two structure panels + trójka, carpet never got built
+    expect(chart.created).toHaveLength(4);
   });
 
   it('still renders the duplicate-sixes panel when the draw count is unavailable', async () => {
@@ -187,6 +209,39 @@ describe('createStatsView', () => {
     expect(container.querySelector('#rekordy').textContent).toContain('liczba 48');
   });
 
+  it('renders the prize records and the trójka step chart', async () => {
+    const { container, done } = mountView();
+    await done;
+    const section = container.querySelector('#wygrane');
+    const cards = section.querySelectorAll('.record-card');
+    expect(cards).toHaveLength(5);
+    // value and unit are sibling nodes inside .record-card__value (no space between them)
+    expect(cards[0].querySelector('.record-card__value').firstChild.textContent).toBe('44,8');
+    expect(cards[0].querySelector('.record-card__unit').textContent).toBe('mln zł');
+    expect(cards[0].querySelector('.record-card__draw').getAttribute('href')).toBe('/losowanie/7407');
+    expect(cards[4].querySelector('.record-card__value').textContent).toContain('150');
+
+    const option = chart.created.at(-1).option;
+    expect(option.series[0]).toMatchObject({ type: 'line', step: 'end' });
+    expect(option.series[0].data).toEqual([
+      ['2011-08-25', 20],
+      ['2017-09-12', 24],
+      ['2025-05-01', 35],
+      ['2026-09-19', 35],
+    ]);
+    // table view lists the changes only: the trailing "still 35 zł" point is not a change
+    expect(section.querySelectorAll('.chart-table tbody tr')).toHaveLength(3);
+    expect(section.querySelector('.stats-section__lead').textContent).toContain('5048');
+  });
+
+  it('says the prize data is still loading when the table is empty', async () => {
+    api.prizesEmpty = true;
+    const { container, done } = mountView();
+    await done;
+    expect(container.querySelector('#wygrane .chart-note').textContent).toContain('wczytują');
+    expect(container.querySelectorAll('#wygrane .record-card')).toHaveLength(0);
+  });
+
   it('gives every chart a table view (the relief channel for the amber fill)', async () => {
     const { container, done } = mountView();
     await done;
@@ -199,7 +254,7 @@ describe('createStatsView', () => {
     chart.explode = true;
     const { container, done } = mountView();
     await done;
-    expect(container.querySelectorAll('.stats-section')).toHaveLength(7);
+    expect(container.querySelectorAll('.stats-section')).toHaveLength(8);
     expect(container.querySelectorAll('.section-error')).toHaveLength(0);
     expect(container.querySelector('#suma .chart-table tbody tr')).not.toBeNull();
   });
@@ -208,7 +263,7 @@ describe('createStatsView', () => {
     const { view, container, done } = mountView();
     await done;
     view.unmount();
-    expect(chart.disposed).toBe(4);
+    expect(chart.disposed).toBe(5);
     expect(container.querySelector('.view--stats')).toBeNull();
   });
 
