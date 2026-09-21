@@ -7,6 +7,7 @@ import {
   reconcile,
   runWatchdog,
   isMissingLatestDraw,
+  runPrizeSync,
   startScheduler,
   shouldStartScheduler,
 } from '../src/server/lib/scheduler.js';
@@ -365,6 +366,72 @@ describe('runWatchdog(db, options) — >24h past the last expected draw with no 
 });
 
 // ---------------------------------------------------------------------------
+// runPrizeSync
+// ---------------------------------------------------------------------------
+describe('runPrizeSync(db, options) — one prize-sync run with follow-ups', () => {
+  const config = { prizeFollowUpAttempts: 6, prizeFollowUpIntervalMinutes: 30 };
+  const batch = (extra = {}) => ({ checked: 1, ok: 1, empty: 0, skipped: 0, stopped: false, ...extra });
+
+  it('one batch is enough once the latest draw is settled', async () => {
+    const syncFn = vi.fn(async () => batch());
+    const scheduleRetry = vi.fn();
+
+    const result = await runPrizeSync(null, { syncFn, settledFn: () => true, scheduleRetry, scheduleConfig: config });
+
+    expect(syncFn).toHaveBeenCalledTimes(1);
+    expect(scheduleRetry).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: 1, attempts: 1 });
+  });
+
+  it('retries every 30 min while the latest draw is still pending', async () => {
+    const syncFn = vi.fn(async () => batch({ checked: 0, ok: 0 }));
+    const settledFn = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const scheduleRetry = vi.fn((fn) => fn());
+
+    const result = await runPrizeSync(null, { syncFn, settledFn, scheduleRetry, scheduleConfig: config });
+
+    expect(syncFn).toHaveBeenCalledTimes(3);
+    expect(scheduleRetry).toHaveBeenCalledTimes(2);
+    expect(scheduleRetry).toHaveBeenCalledWith(expect.any(Function), 30 * 60 * 1000);
+    expect(result.attempts).toBe(3);
+  });
+
+  it.each([
+    ['a stopped batch (e.g. a 403 mid-backfill)', { stopped: true, error: 'HTTP 403' }],
+    ['a batch skipped because another one was running', { busy: true }],
+  ])('%s is retried even when the latest draw is settled', async (_, first) => {
+    const syncFn = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(batch());
+    const scheduleRetry = vi.fn((fn) => fn());
+
+    await runPrizeSync(null, { syncFn, settledFn: () => true, scheduleRetry, scheduleConfig: config });
+
+    expect(syncFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('a disabled sync (no API key) ends at once', async () => {
+    const syncFn = vi.fn(async () => ({ disabled: true }));
+    const scheduleRetry = vi.fn();
+
+    await runPrizeSync(null, { syncFn, settledFn: () => false, scheduleRetry, scheduleConfig: config });
+
+    expect(syncFn).toHaveBeenCalledTimes(1);
+    expect(scheduleRetry).not.toHaveBeenCalled();
+  });
+
+  it('gives up after prizeFollowUpAttempts retries and says so', async () => {
+    const syncFn = vi.fn(async () => batch({ ok: 0 }));
+    const scheduleRetry = vi.fn((fn) => fn());
+    const log = vi.fn();
+
+    const result = await runPrizeSync(null, { syncFn, settledFn: () => false, scheduleRetry, scheduleConfig: config, log });
+
+    expect(syncFn).toHaveBeenCalledTimes(7); // 1 + 6 follow-ups
+    expect(result).toMatchObject({ exhausted: true, attempts: 7 });
+    expect(log).toHaveBeenCalledWith(expect.stringMatching(/giving up/));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // isMissingLatestDraw
 // ---------------------------------------------------------------------------
 describe('isMissingLatestDraw(db, options) — boot-time catch-up gate used by server.js', () => {
@@ -441,7 +508,7 @@ describe('startScheduler(db, options) — wires the three cron jobs + in-process
     return { pattern, options, fn, nextRun: () => null, stop: vi.fn() };
   }
 
-  it('registers exactly 3 jobs with the cron patterns/timezone derived from config/schedule.json', () => {
+  it('registers exactly 4 jobs with the cron patterns/timezone derived from config/schedule.json', () => {
     const handle = startScheduler(db, { CronImpl: FakeCron });
 
     expect(handle.jobs.fetch.pattern).toBe('5 22 * * 2,4,6');
@@ -452,6 +519,9 @@ describe('startScheduler(db, options) — wires the three cron jobs + in-process
 
     expect(handle.jobs.watchdog.pattern).toBe('0 12 * * *');
     expect(handle.jobs.watchdog.options).toMatchObject({ timezone: 'Europe/Warsaw' });
+
+    expect(handle.jobs.prizes.pattern).toBe('0 12 * * *');
+    expect(handle.jobs.prizes.options).toMatchObject({ timezone: 'Europe/Warsaw', name: 'lotek-prizes' });
   });
 
   it('overlap guard: triggering the fetch cycle again while one is still in flight does not start a second one', async () => {
@@ -487,5 +557,51 @@ describe('startScheduler(db, options) — wires the three cron jobs + in-process
     expect(handle.jobs.fetch.stop).toHaveBeenCalled();
     expect(handle.jobs.reconcile.stop).toHaveBeenCalled();
     expect(handle.jobs.watchdog.stop).toHaveBeenCalled();
+    expect(handle.jobs.prizes.stop).toHaveBeenCalled();
+  });
+
+  it('a fetch cycle that added draws starts a prize sync; one that added none does not', async () => {
+    const runPrizeSyncFn = vi.fn(async () => ({}));
+    const runFetchCycleFn = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 'ok', added: 1 })
+      .mockResolvedValueOnce({ status: 'ok', added: 0 });
+    const handle = startScheduler(db, { CronImpl: FakeCron, runFetchCycleFn, runPrizeSyncFn });
+
+    await handle.triggerFetchCycle();
+    expect(runPrizeSyncFn).toHaveBeenCalledTimes(1);
+    expect(runPrizeSyncFn).toHaveBeenCalledWith(db, expect.objectContaining({ syncFn: expect.any(Function) }));
+
+    await handle.triggerFetchCycle();
+    expect(runPrizeSyncFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('prize batches never overlap: a second one while the first runs reports busy', async () => {
+    let release;
+    const syncPrizesFn = vi.fn(() => new Promise((resolve) => (release = resolve)));
+    const runPrizeSyncFn = (db_, { syncFn }) => syncFn();
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const handle = startScheduler(db, { CronImpl: FakeCron, syncPrizesFn, runPrizeSyncFn });
+
+    const first = handle.triggerPrizeSync();
+    const second = await handle.triggerPrizeSync();
+
+    expect(second).toEqual({ busy: true });
+    expect(syncPrizesFn).toHaveBeenCalledTimes(1);
+    release({ checked: 0, ok: 0, empty: 0, skipped: 0, stopped: false });
+    await first;
+    warnSpy.mockRestore();
+  });
+
+  it('a throwing prize batch is reported as stopped, not crashed', async () => {
+    const syncPrizesFn = vi.fn(async () => {
+      throw new Error('disk full');
+    });
+    const runPrizeSyncFn = (db_, { syncFn }) => syncFn();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const handle = startScheduler(db, { CronImpl: FakeCron, syncPrizesFn, runPrizeSyncFn });
+
+    expect(await handle.triggerPrizeSync()).toEqual({ stopped: true, error: 'disk full' });
+    errorSpy.mockRestore();
   });
 });

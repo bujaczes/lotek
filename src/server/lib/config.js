@@ -17,6 +17,10 @@ const SCHEDULE_KEYS = [
   'reconcileHour',
   'watchdogHour',
   'watchdogStaleHours',
+  'prizeSyncHour',
+  'prizeFollowUpIntervalMinutes',
+  'prizeFollowUpAttempts',
+  'prizeThrottleMs',
 ];
 
 /**

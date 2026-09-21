@@ -22,12 +22,16 @@ if (shouldStartScheduler({ nodeEnv: process.env.NODE_ENV, schedulerEnabled: proc
   console.log(`[scheduler] fetch-cycle next run: ${scheduler.jobs.fetch.nextRun()?.toISOString()}`);
   console.log(`[scheduler] reconcile next run: ${scheduler.jobs.reconcile.nextRun()?.toISOString()}`);
   console.log(`[scheduler] watchdog next run: ${scheduler.jobs.watchdog.nextRun()?.toISOString()}`);
+  console.log(`[scheduler] prizes next run: ${scheduler.jobs.prizes.nextRun()?.toISOString()}`);
   // A deploy/restart kills any in-flight retry loop; catch up now instead of waiting for
   // the next draw night.
   if (isMissingLatestDraw(db)) {
     console.log('[scheduler] latest scheduled draw missing, starting catch-up fetch cycle');
     scheduler.triggerFetchCycle();
   }
+  // Fill in prizes that are still missing. The first boot after this shipped backfills
+  // them back to 2011 in the background, newest first.
+  scheduler.triggerPrizeSync();
 } else {
   console.log('[scheduler] disabled (NODE_ENV=test or SCHEDULER_ENABLED=0)');
 }

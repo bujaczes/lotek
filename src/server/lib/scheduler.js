@@ -8,6 +8,8 @@ import { writeImportLog } from './draw-writer.js';
 import { fetchWithTimeout } from './fetch-timeout.js';
 import { parseDlFile } from './parse-dl.js';
 import { DEFAULT_URL as MBNET_DEFAULT_URL } from '../providers/mbnet.js';
+import { syncPrizes } from './prizes-sync.js';
+import { latestDrawPrizesSettled } from './prize-store.js';
 
 const GAME_TYPE = 'lotto';
 
@@ -223,6 +225,47 @@ export function isMissingLatestDraw(db, { now = () => new Date(), gameType = GAM
 }
 
 /**
+ * One prize-sync run: a batch via `syncFn`, then follow-ups every
+ * `prizeFollowUpIntervalMinutes` (up to `prizeFollowUpAttempts`) while the batch stopped
+ * (HTTP error mid-backfill), was skipped as `busy`, or the newest draw's prizes are still
+ * pending — Totalizator publishes prizes some time after the numbers, and a single 403
+ * must not park a 2 360-draw backfill until tomorrow. A `disabled` batch (no API key)
+ * ends the run at once. Same injected-timer pattern as `runFetchCycle`.
+ */
+export async function runPrizeSync(db, options = {}) {
+  const {
+    syncFn,
+    settledFn = (database) => latestDrawPrizesSettled(database),
+    scheduleRetry = (fn, delayMs) => setTimeout(fn, delayMs),
+    scheduleConfig = SCHEDULE,
+    log = (message) => console.warn(message),
+  } = options;
+
+  const maxAttempts = scheduleConfig.prizeFollowUpAttempts;
+  const intervalMs = scheduleConfig.prizeFollowUpIntervalMinutes * 60000;
+
+  async function attempt(attemptCount) {
+    const result = await syncFn();
+    const done = result.disabled || (!result.stopped && !result.busy && settledFn(db));
+    if (done) return { ...result, attempts: attemptCount + 1 };
+
+    const decision = decideRetry({ attempt: attemptCount, maxAttempts });
+    if (decision.action === 'retry') {
+      return new Promise((resolve, reject) => {
+        scheduleRetry(() => {
+          attempt(decision.nextAttempt).then(resolve, reject);
+        }, intervalMs);
+      });
+    }
+
+    log(`[scheduler] prize sync: giving up after ${attemptCount + 1} attempts`);
+    return { ...result, attempts: attemptCount + 1, exhausted: true };
+  }
+
+  return attempt(0);
+}
+
+/**
  * Pure gate for server.js: the scheduler must never start under `NODE_ENV=test` (tests
  * that boot `createApp`/`server.js`-adjacent code must never race a real croner job
  * against an in-memory DB that gets torn down at the end of the test), and can always be
@@ -238,9 +281,10 @@ export function shouldStartScheduler({ nodeEnv, schedulerEnabled }) {
 }
 
 /**
- * Wires the three cron jobs (fetch cycle: Tue/Thu/Sat `fetchMinute` past `drawHour`;
+ * Wires the four cron jobs (fetch cycle: Tue/Thu/Sat `fetchMinute` past `drawHour`;
  * reconcile: `reconcileDayOfWeek` at `reconcileHour`:00; watchdog: daily at
- * `watchdogHour`:00 — all Europe/Warsaw, all from config/schedule.json) via `CronImpl`
+ * `watchdogHour`:00; prizes: daily at `prizeSyncHour`:00 — all Europe/Warsaw, all from
+ * config/schedule.json) via `CronImpl`
  * (croner's `Cron` by default; tests inject a fake to inspect the registered
  * pattern/options without any real timers).
  *
@@ -251,7 +295,7 @@ export function shouldStartScheduler({ nodeEnv, schedulerEnabled }) {
  * console.warn, not queued — the next scheduled cron tick (or a future manual trigger)
  * picks it back up naturally.
  *
- * Returns `{jobs, stop, triggerFetchCycle, triggerReconcile, triggerWatchdog}` —
+ * Returns `{jobs, stop, triggerFetchCycle, triggerReconcile, triggerWatchdog, triggerPrizeSync}` —
  * `trigger*` are the same guarded functions the cron jobs call, exposed for manual/admin
  * use and for tests (this is how the overlap guard gets exercised without waiting on a
  * real cron tick).
@@ -267,9 +311,34 @@ export function startScheduler(db, options = {}) {
     runFetchCycleFn = runFetchCycle,
     reconcileFn = reconcile,
     watchdogFn = runWatchdog,
+    syncPrizesFn = syncPrizes,
+    runPrizeSyncFn = runPrizeSync,
   } = options;
 
   let cycleRunning = false;
+  let prizeBatchRunning = false;
+
+  async function prizeBatch() {
+    if (prizeBatchRunning) {
+      console.warn('[scheduler] prize sync already in progress, skipping this batch');
+      return { busy: true };
+    }
+    prizeBatchRunning = true;
+    try {
+      return await syncPrizesFn(db, { fetchFn, throttleMs: scheduleConfig.prizeThrottleMs });
+    } catch (err) {
+      console.error('[scheduler] prize sync failed:', err.message);
+      return { stopped: true, error: err.message };
+    } finally {
+      prizeBatchRunning = false;
+    }
+  }
+
+  function triggerPrizeSync() {
+    return runPrizeSyncFn(db, { syncFn: prizeBatch, scheduleConfig }).catch((err) => {
+      console.error('[scheduler] prize sync run failed:', err.message);
+    });
+  }
 
   async function triggerFetchCycle() {
     if (cycleRunning) {
@@ -278,7 +347,10 @@ export function startScheduler(db, options = {}) {
     }
     cycleRunning = true;
     try {
-      return await runFetchCycleFn(db, { hooks, providers, fetchFn, now, scheduleConfig });
+      const result = await runFetchCycleFn(db, { hooks, providers, fetchFn, now, scheduleConfig });
+      // New draws -> go get their prizes too. Fire-and-forget: the run retries on its own.
+      if (result?.added > 0) triggerPrizeSync();
+      return result;
     } catch (err) {
       console.error('[scheduler] fetch cycle failed:', err.message);
     } finally {
@@ -318,16 +390,23 @@ export function startScheduler(db, options = {}) {
     { timezone: scheduleConfig.timeZone, name: 'lotek-watchdog' },
     triggerWatchdog
   );
+  const prizesJob = new CronImpl(
+    `0 ${scheduleConfig.prizeSyncHour} * * *`,
+    { timezone: scheduleConfig.timeZone, name: 'lotek-prizes' },
+    triggerPrizeSync
+  );
 
   return {
-    jobs: { fetch: fetchJob, reconcile: reconcileJob, watchdog: watchdogJob },
+    jobs: { fetch: fetchJob, reconcile: reconcileJob, watchdog: watchdogJob, prizes: prizesJob },
     stop() {
       fetchJob.stop();
       reconcileJob.stop();
       watchdogJob.stop();
+      prizesJob.stop();
     },
     triggerFetchCycle,
     triggerReconcile,
     triggerWatchdog,
+    triggerPrizeSync,
   };
 }

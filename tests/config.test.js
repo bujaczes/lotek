@@ -25,6 +25,10 @@ describe('loadSchedule() — reads config/schedule.json (single source of truth 
       reconcileHour: 8,
       watchdogHour: 12,
       watchdogStaleHours: 24,
+      prizeSyncHour: 12,
+      prizeFollowUpIntervalMinutes: 30,
+      prizeFollowUpAttempts: 6,
+      prizeThrottleMs: 1000,
     });
   });
 });
