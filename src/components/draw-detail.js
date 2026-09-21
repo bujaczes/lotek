@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { createBall } from './ball.js';
+import { createPrizesCard } from './prizes.js';
 import { formatInt, formatLongDate, formatShortDate, pluralPl } from '../format.js';
 import { sumPercentile, sumSector } from '../charts/career-transforms.js';
 import { percentileLabel } from '../charts/transforms.js';
@@ -126,6 +127,8 @@ export function createDrawDetail(data, { sumHistogram = null } = {}) {
     ),
 
     el('div', { class: 'draw-detail__verdict' }, [verdictBlock(data.verdict)]),
+
+    createPrizesCard(data.prizes),
 
     sumBlock(data.sum, sumHistogram),
 

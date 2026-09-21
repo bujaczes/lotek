@@ -539,6 +539,65 @@ a.site-footer__name:hover {
   letter-spacing: 0.04em;
 }
 
+/* prizes (wygrane) — hero + draw detail */
+.prizes {
+  width: 100%;
+  max-width: 30rem;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  text-align: left;
+}
+.prizes__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.prizes__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'hits amount'
+    'winners winners';
+  column-gap: var(--sp-2);
+  row-gap: 0.1rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-line);
+}
+.prizes__row:first-child {
+  border-top: 0;
+}
+.prizes__hits {
+  grid-area: hits;
+  font-weight: 600;
+}
+.prizes__winners {
+  grid-area: winners;
+  color: var(--ink-70);
+  font-size: var(--step--1);
+}
+.prizes__amount {
+  grid-area: amount;
+  font-weight: 600;
+  text-align: right;
+}
+.prizes__note {
+  color: var(--ink-55);
+}
+.draw-detail .prizes {
+  max-width: none;
+}
+@media (min-width: 34rem) {
+  .prizes__row {
+    grid-template-columns: 7rem 1fr auto;
+    grid-template-areas: 'hits winners amount';
+  }
+  .prizes__winners {
+    font-size: inherit;
+  }
+}
+
 /* home section slots (blankiet / rankings load into these) */
 .home-slot {
   display: block;

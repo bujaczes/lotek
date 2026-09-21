@@ -1,5 +1,6 @@
 import { el } from '../dom.js';
 import { createBall } from './ball.js';
+import { createPrizesCard } from './prizes.js';
 import { formatInt, formatLongDate, formatShortDate, formatCountdown } from '../format.js';
 
 // Weekday + long date in Warsaw wall-clock time, for the next-draw instant
@@ -83,6 +84,8 @@ export function createHero(data) {
         el('b', { class: 'mono' }, String(data.sum)),
       ]),
     ]),
+
+    createPrizesCard(data.prizes),
 
     el('div', { class: 'countdown card' }, [
       el('p', { class: 'eyebrow' }, 'Następne losowanie'),
